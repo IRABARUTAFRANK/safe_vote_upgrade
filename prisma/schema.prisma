@@ -13,91 +13,129 @@ datasource db {
   provider = "postgresql"
 }
 
+enum OrgStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Super Admin - Platform Level Administration
+model SuperAdmin {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  fullName      String
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  lastLoginIp   String?
+  failedAttempts Int      @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Audit trail for super admin actions
+  adminLogs     SuperAdminLog[]
+}
+
+model SuperAdminLog {
+  id            String     @id @default(cuid())
+  adminId       String
+  admin         SuperAdmin @relation(fields: [adminId], references: [id])
+  action        String     // LOGIN, LOGOUT, APPROVE_ORG, REJECT_ORG, etc.
+  targetType    String?    // Organisation, Member, Election, etc.
+  targetId      String?
+  details       String?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime   @default(now())
+}
+
 model Organisation {
-  id          String   @id @default(cuid())
-  name        String
-  createdAt   DateTime @default(now())
+  id            String    @id @default(cuid())
+  name          String
+  type          String?   // School, NGO, Corp
+  email         String    @unique
+  orgCode       String?   @unique
+  status        OrgStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
   
-  elections   Election[]
-  members     OrgMember[]
-  support     SupportThread[]
+  // Relations
+  elections     Election[]
+  members       Member[]
+  auditLogs     AuditLog[]
 }
 
-// --- ELECTION LOGIC ---
+model Member {
+  id            String       @id @default(cuid())
+  orgId         String
+  organisation  Organisation @relation(fields: [orgId], references: [id])
+  
+  email         String?      
+  fullName      String
+  passwordHash  String?      // Nullable because simple voters might only use a PIN/Code
+  memberCode    String       @unique
+  role          String       @default("VOTER") // ORG_ADMIN or VOTER
+  
+  ballots       Ballot[]
+}
+
 model Election {
-  id          String   @id @default(cuid())
-  orgId       String
-  org         Organisation @relation(fields: [orgId], references: [id])
-  title       String
-  status      String   @default("DRAFT") // DRAFT, PAID, ACTIVE, CLOSED
+  id              String       @id @default(cuid())
+  orgId           String
+  organisation    Organisation @relation(fields: [orgId], references: [id])
+  title           String
+  startDate       DateTime
+  endDate         DateTime
+  status          String       @default("DRAFT")
   
-  positions   Position[]
-  ballots     Ballot[]   // Tracks WHO voted
-  votes       AnonymousVote[] // Tracks WHAT they voted (No user ID link)
+  positions       Position[]
+  ballots         Ballot[]
 }
 
-// --- VOTER MANAGEMENT (The Physical Codes) ---
-model OrgMember {
-  id           String   @id @default(cuid())
-  orgId        String
-  org          Organisation @relation(fields: [orgId], references: [id])
-  fullName     String
-  voterCode    String   @unique
-  isRegistered Boolean  @default(false)
-  
-  ballots      Ballot[]
-}
-
-model Ballot {
-  id         String   @id @default(cuid())
-  memberId   String
-  member     OrgMember @relation(fields: [memberId], references: [id])
-  electionId String
-  election   Election  @relation(fields: [electionId], references: [id])
-  hasVoted   Boolean   @default(false)
-
-  @@unique([memberId, electionId])
-}
-
-// --- SECRET VOTING ENGINE ---
 model Position {
-  id         String      @id @default(cuid())
-  electionId String
-  election   Election    @relation(fields: [electionId], references: [id])
-  title      String      // e.g., "President"
-  candidates Candidate[]
+  id          String    @id @default(cuid())
+  electionId  String
+  election    Election  @relation(fields: [electionId], references: [id])
+  name        String    // e.g. "President"
+  candidates  Candidate[]
+  votes       Vote[]
 }
 
 model Candidate {
-  id         String   @id @default(cuid())
-  positionId String
-  position   Position @relation(fields: [positionId], references: [id])
-  name       String
+  id          String    @id @default(cuid())
+  positionId  String
+  position    Position  @relation(fields: [positionId], references: [id])
+  name        String
+  votes       Vote[]
 }
 
-model AnonymousVote {
-  id         String   @id @default(cuid())
-  electionId String
-  election   Election @relation(fields: [electionId], references: [id])
-  positionId String
+// ANTI-FRAUD LAYER: Tracks WHO voted
+model Ballot {
+  id          String    @id @default(cuid())
+  voterId     String
+  voter       Member    @relation(fields: [voterId], references: [id])
+  electionId  String
+  election    Election  @relation(fields: [electionId], references: [id])
+  createdAt   DateTime  @default(now())
+  ipAddress   String?
+}
+
+// SECRET LAYER: Tracks WHAT was voted (No link to Member!)
+model Vote {
+  id          String    @id @default(cuid())
+  positionId  String
+  position    Position  @relation(fields: [positionId], references: [id])
   candidateId String
-  createdAt  DateTime @default(now())
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
 }
 
-// --- SUPPORT CHAT SYSTEM ---
-model SupportThread {
-  id      String   @id @default(cuid())
-  orgId   String
-  org     Organisation @relation(fields: [orgId], references: [id])
-  status  String   @default("PENDING")
-  messages Message[]
-}
-
-model Message {
-  id        String   @id @default(cuid())
-  threadId  String
-  thread    SupportThread @relation(fields: [threadId], references: [id])
-  sender    String   // "SUPER_ADMIN" or "ORG_ADMIN"
-  content   String
-  createdAt DateTime @default(now())
+model AuditLog {
+  id              String       @id @default(cuid())
+  orgId           String
+  organisation    Organisation @relation(fields: [orgId], references: [id])
+  action          String
+  description     String
+  actorId         String
+  ipAddress       String?
+  createdAt       DateTime     @default(now())
 }
