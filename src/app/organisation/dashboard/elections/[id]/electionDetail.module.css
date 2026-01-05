@@ -397,6 +397,483 @@
   padding: 1rem;
 }
 
+.successMessage {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+  color: #10b981;
+  font-size: 0.9rem;
+}
+
+.dismissBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.dismissBtn:hover {
+  opacity: 1;
+}
+
+.methodBadge {
+  padding: 0.375rem 0.75rem;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 6px;
+  color: #a78bfa;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  background: rgba(100, 116, 139, 0.1);
+  color: #cbd5e1;
+}
+
+.activeTab {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.formRow {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.numberInput {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.numberInput label {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.numberInput .input {
+  width: 100px;
+}
+
+.candidateAvatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.candidateAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.candidateInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.candidateBio {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0.25rem 0 0;
+}
+
+.candidateActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.voterCodesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.codeStats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.codeStat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.codeStatValue {
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.voterActions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.generateMore {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.generateMore .input {
+  max-width: 250px;
+}
+
+.printBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: rgba(100, 116, 139, 0.1);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  border-radius: 10px;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.printBtn:hover:not(:disabled) {
+  background: rgba(100, 116, 139, 0.2);
+}
+
+.printBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.codesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.codeCard {
+  padding: 1rem;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.usedCode {
+  opacity: 0.5;
+}
+
+.codeValue {
+  display: block;
+  font-family: monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #f1f5f9;
+  margin-bottom: 0.5rem;
+}
+
+.codeStatus {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.moreCodesNote {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 1rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.applicationsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cardSubtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.formBuilder {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.formBuilderRow {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.select {
+  padding: 0.875rem 1rem;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #f1f5f9;
+  font-size: 1rem;
+  min-width: 150px;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.checkboxLabel input {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+}
+
+.formFieldsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.emptyFields {
+  color: #64748b;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.formFieldCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.fieldInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fieldName {
+  font-weight: 500;
+  color: #f1f5f9;
+}
+
+.fieldType {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  background: rgba(100, 116, 139, 0.1);
+  border-radius: 4px;
+}
+
+.requiredBadge {
+  font-size: 0.75rem;
+  color: #f87171;
+  padding: 0.25rem 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+}
+
+.applicationsList {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.applicationsList h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0 0 1rem;
+}
+
+.viewApplicationsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border-radius: 10px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.viewApplicationsBtn:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+.resultsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.winnerCount {
+  font-size: 0.85rem;
+  color: #64748b;
+  padding: 0.375rem 0.75rem;
+  background: rgba(100, 116, 139, 0.1);
+  border-radius: 6px;
+}
+
+.resultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.resultCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.winner {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.resultRank {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  font-weight: 700;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.winner .resultRank {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.resultInfo {
+  flex: 1;
+}
+
+.resultName {
+  display: block;
+  font-weight: 500;
+  color: #f1f5f9;
+  margin-bottom: 0.5rem;
+}
+
+.resultBar {
+  height: 8px;
+  background: rgba(100, 116, 139, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.resultBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.winner .resultBarFill {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.resultStats {
+  text-align: right;
+  min-width: 80px;
+}
+
+.resultVotes {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.resultPercent {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
 @media (max-width: 768px) {
   .cardHeader {
     flex-direction: column;
@@ -410,6 +887,37 @@
   .addForm,
   .addCandidateForm {
     flex-direction: column;
+  }
+
+  .tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    flex: none;
+    min-width: calc(50% - 0.25rem);
+  }
+
+  .voterActions {
+    flex-direction: column;
+  }
+
+  .generateMore {
+    flex-direction: column;
+  }
+
+  .generateMore .input {
+    max-width: none;
+  }
+
+  .formBuilderRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .formBuilderRow .input,
+  .formBuilderRow .select {
+    width: 100%;
   }
 }
 

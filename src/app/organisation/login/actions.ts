@@ -9,7 +9,12 @@ import {
   checkSuspiciousActivity,
 } from "@/lib/security";
 
-export async function loginOrgAdmin(formData: FormData) {
+export async function loginOrgAdmin(formData: FormData): Promise<{ 
+  success: boolean; 
+  error?: string; 
+  orgId?: string; 
+  memberId?: string 
+}> {
   // Rate limiting
   const ipAddress = await getClientIp();
   const rateLimit = await checkRateLimit(ipAddress, "login");

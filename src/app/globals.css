@@ -60,6 +60,49 @@ footer { margin-top: 2rem; padding: 2rem 1rem; color: white; }
   --text: #e6eef8;
   --muted: #9aa9bf;
   --green-600: #34d399;
+  --card-bg: #0f1d32;
+  --border-color: #1e3a5f;
+  --input-bg: #0f1d32;
+}
+
+/* Light mode card backgrounds */
+:root {
+  --card-bg: #ffffff;
+  --border-color: #e2e8f0;
+  --input-bg: #ffffff;
+  --accent-primary: #10b981;
+  --accent-secondary: #3b82f6;
+}
+
+/* Accent Color Themes */
+:root[data-accent='emerald'] {
+  --accent-primary: #10b981;
+  --accent-secondary: #059669;
+}
+
+:root[data-accent='blue'] {
+  --accent-primary: #3b82f6;
+  --accent-secondary: #1d4ed8;
+}
+
+:root[data-accent='purple'] {
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #7c3aed;
+}
+
+:root[data-accent='rose'] {
+  --accent-primary: #f43f5e;
+  --accent-secondary: #e11d48;
+}
+
+:root[data-accent='amber'] {
+  --accent-primary: #f59e0b;
+  --accent-secondary: #d97706;
+}
+
+:root[data-accent='cyan'] {
+  --accent-primary: #06b6d4;
+  --accent-secondary: #0891b2;
 }
 
 /* Prefer system dark when no explicit theme is set */
@@ -68,5 +111,8 @@ footer { margin-top: 2rem; padding: 2rem 1rem; color: white; }
     --bg: #071126;
     --text: #e6eef8;
     --muted: #9aa9bf;
+    --card-bg: #0f1d32;
+    --border-color: #1e3a5f;
+    --input-bg: #0f1d32;
   }
 }

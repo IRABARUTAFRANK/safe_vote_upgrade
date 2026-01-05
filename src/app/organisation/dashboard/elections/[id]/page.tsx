@@ -3,7 +3,8 @@ import { getOrgAdminSession } from "@/lib/orgAuth";
 import { getElectionDetails } from "../actions";
 import ElectionDetailClient from "./ElectionDetailClient";
 
-export default async function ElectionDetailPage({ params }: { params: { id: string } }) {
+export default async function ElectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getOrgAdminSession();
   
   if (!session) {
@@ -14,7 +15,7 @@ export default async function ElectionDetailPage({ params }: { params: { id: str
     redirect("/organisation/pending");
   }
 
-  const result = await getElectionDetails(params.id);
+  const result = await getElectionDetails(id);
 
   if (!result.success || !result.data) {
     redirect("/organisation/dashboard");

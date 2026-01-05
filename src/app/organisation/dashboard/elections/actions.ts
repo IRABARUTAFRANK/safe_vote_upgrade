@@ -2,13 +2,10 @@
 
 import { db } from "@/lib/db";
 import { getOrgAdminSession } from "@/lib/orgAuth";
-import { generateMemberCode, extractOrgIdentity } from "@/lib/orgCode";
-import { validateAndSanitizeInput, getClientIp, logSecurityEvent } from "@/lib/security";
+import { generateMemberCodes, extractOrgIdentity } from "@/lib/orgCode";
+import { validateAndSanitizeInput } from "@/lib/security";
 import { revalidatePath } from "next/cache";
 
-/**
- * Create a new election
- */
 export async function createElection(formData: FormData) {
   const session = await getOrgAdminSession();
   if (!session) {
@@ -16,11 +13,15 @@ export async function createElection(formData: FormData) {
   }
 
   const title = (formData.get("title") as string) || "";
+  const description = (formData.get("description") as string) || "";
   const startDate = (formData.get("startDate") as string) || "";
   const endDate = (formData.get("endDate") as string) || "";
   const numberOfVoters = (formData.get("numberOfVoters") as string) || "";
+  const candidateMethod = (formData.get("candidateMethod") as string) || "MANUAL";
+  const applicationStartDate = formData.get("applicationStartDate") as string;
+  const applicationEndDate = formData.get("applicationEndDate") as string;
+  const showRealTimeResults = formData.get("showRealTimeResults") === "true";
 
-  // Validate inputs
   const titleValidation = validateAndSanitizeInput(title, {
     type: "text",
     maxLength: 200,
@@ -46,17 +47,12 @@ export async function createElection(formData: FormData) {
     return { success: false, error: "End date must be after start date" };
   }
 
-  if (start < now) {
-    return { success: false, error: "Start date must be in the future" };
-  }
-
   const voterCount = parseInt(numberOfVoters, 10);
   if (isNaN(voterCount) || voterCount < 1 || voterCount > 100000) {
     return { success: false, error: "Number of voters must be between 1 and 100,000" };
   }
 
   try {
-    // Get organization to extract org identity
     const organisation = await db.organisation.findUnique({
       where: { id: session.orgId },
       select: { orgCode: true },
@@ -66,56 +62,51 @@ export async function createElection(formData: FormData) {
       return { success: false, error: "Organization code not found" };
     }
 
-    const orgIdentity = extractOrgIdentity(organisation.orgCode);
-
-    // Create election and generate voter codes in a transaction
     const result = await db.$transaction(async (tx) => {
-      // Create election
       const election = await tx.election.create({
         data: {
           orgId: session.orgId,
           title: titleValidation.sanitized!,
+          description: description || null,
           startDate: start,
           endDate: end,
           status: "DRAFT",
+          numberOfVoters: voterCount,
+          candidateMethod: candidateMethod as "MANUAL" | "APPLICATION",
+          applicationStartDate: applicationStartDate ? new Date(applicationStartDate) : null,
+          applicationEndDate: applicationEndDate ? new Date(applicationEndDate) : null,
+          showRealTimeResults,
         },
       });
 
-      // Generate member codes for voters
-      const members = [];
-      const usedCodes = new Set<string>();
-
-      for (let i = 0; i < voterCount; i++) {
-        let memberCode = generateMemberCode(orgIdentity);
-        let retries = 0;
-        
-        // Ensure uniqueness
-        while (usedCodes.has(memberCode) && retries < 10) {
-          memberCode = generateMemberCode(orgIdentity);
-          retries++;
+      const voterCodes = generateMemberCodes(organisation.orgCode!, voterCount);
+      
+      const existingCodes = await tx.voterCode.findMany({
+        where: { code: { in: voterCodes } },
+        select: { code: true },
+      });
+      const existingCodeSet = new Set(existingCodes.map(c => c.code));
+      const uniqueCodes = voterCodes.filter(code => !existingCodeSet.has(code));
+      
+      let additionalNeeded = voterCount - uniqueCodes.length;
+      while (additionalNeeded > 0) {
+        const moreCodes = generateMemberCodes(organisation.orgCode!, additionalNeeded * 2);
+        for (const code of moreCodes) {
+          if (!existingCodeSet.has(code) && !uniqueCodes.includes(code)) {
+            uniqueCodes.push(code);
+            if (uniqueCodes.length >= voterCount) break;
+          }
         }
-
-        // Double-check against database
-        const existing = await tx.member.findUnique({ where: { memberCode } });
-        if (existing) {
-          // If collision, try one more time
-          memberCode = generateMemberCode(orgIdentity);
-        }
-
-        usedCodes.add(memberCode);
-
-        members.push({
-          orgId: session.orgId,
-          fullName: `Voter ${i + 1}`, // Placeholder name, can be updated later
-          memberCode,
-          role: "VOTER",
-        });
+        additionalNeeded = voterCount - uniqueCodes.length;
       }
 
-      // Batch create members (Prisma supports createMany)
-      await tx.member.createMany({
-        data: members,
-        skipDuplicates: true,
+      await tx.voterCode.createMany({
+        data: uniqueCodes.slice(0, voterCount).map(code => ({
+          orgId: session.orgId,
+          electionId: election.id,
+          code,
+          status: "UNUSED",
+        })),
       });
 
       return election;
@@ -125,15 +116,12 @@ export async function createElection(formData: FormData) {
     revalidatePath("/organisation/dashboard/elections");
 
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create election error:", error);
     return { success: false, error: "Failed to create election" };
   }
 }
 
-/**
- * Get all elections for the organization
- */
 export async function getElections() {
   const session = await getOrgAdminSession();
   if (!session) {
@@ -148,10 +136,12 @@ export async function getElections() {
           select: {
             positions: true,
             ballots: true,
+            voterCodes: true,
+            applications: true,
           },
         },
       },
-      orderBy: { startDate: "desc" },
+      orderBy: { createdAt: "desc" },
     });
 
     return { success: true, data: elections };
@@ -161,9 +151,6 @@ export async function getElections() {
   }
 }
 
-/**
- * Get election details
- */
 export async function getElectionDetails(electionId: string) {
   const session = await getOrgAdminSession();
   if (!session) {
@@ -185,15 +172,22 @@ export async function getElectionDetails(electionId: string) {
                   select: { votes: true },
                 },
               },
+              orderBy: { displayOrder: "asc" },
             },
             _count: {
-              select: { votes: true },
+              select: { votes: true, applications: true },
             },
           },
+          orderBy: { displayOrder: "asc" },
+        },
+        applicationForm: {
+          orderBy: { displayOrder: "asc" },
         },
         _count: {
           select: {
             ballots: true,
+            voterCodes: true,
+            applications: true,
           },
         },
       },
@@ -203,16 +197,106 @@ export async function getElectionDetails(electionId: string) {
       return { success: false, error: "Election not found" };
     }
 
-    return { success: true, data: election };
+    const voterCodeStats = await db.voterCode.groupBy({
+      by: ["status"],
+      where: { electionId },
+      _count: { status: true },
+    });
+
+    const applicationStats = await db.candidateApplication.groupBy({
+      by: ["status"],
+      where: { electionId },
+      _count: { status: true },
+    });
+
+    return { 
+      success: true, 
+      data: { 
+        ...election, 
+        voterCodeStats,
+        applicationStats,
+      } 
+    };
   } catch (error) {
     console.error("Get election details error:", error);
     return { success: false, error: "Failed to fetch election details" };
   }
 }
 
-/**
- * Update election status
- */
+export async function updateElectionSettings(
+  electionId: string,
+  data: {
+    title?: string;
+    description?: string;
+    startDate?: string;
+    endDate?: string;
+    applicationStartDate?: string | null;
+    applicationEndDate?: string | null;
+    showRealTimeResults?: boolean;
+  }
+) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    // Validate title if provided
+    if (data.title !== undefined) {
+      const titleValidation = validateAndSanitizeInput(data.title, {
+        type: "text",
+        maxLength: 200,
+        required: true,
+      });
+      if (!titleValidation.valid) {
+        return { success: false, error: titleValidation.error || "Invalid title" };
+      }
+    }
+
+    // Build update object
+    const updateData: any = {};
+    
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined) updateData.description = data.description || null;
+    if (data.startDate !== undefined) updateData.startDate = new Date(data.startDate);
+    if (data.endDate !== undefined) updateData.endDate = new Date(data.endDate);
+    if (data.applicationStartDate !== undefined) {
+      updateData.applicationStartDate = data.applicationStartDate ? new Date(data.applicationStartDate) : null;
+    }
+    if (data.applicationEndDate !== undefined) {
+      updateData.applicationEndDate = data.applicationEndDate ? new Date(data.applicationEndDate) : null;
+    }
+    if (data.showRealTimeResults !== undefined) updateData.showRealTimeResults = data.showRealTimeResults;
+
+    // Validate dates if both are provided
+    if (updateData.startDate && updateData.endDate) {
+      if (updateData.startDate >= updateData.endDate) {
+        return { success: false, error: "End date must be after start date" };
+      }
+    }
+
+    const election = await db.election.updateMany({
+      where: {
+        id: electionId,
+        orgId: session.orgId,
+      },
+      data: updateData,
+    });
+
+    if (election.count === 0) {
+      return { success: false, error: "Election not found" };
+    }
+
+    revalidatePath("/organisation/dashboard");
+    revalidatePath(`/organisation/dashboard/elections/${electionId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Update election settings error:", error);
+    return { success: false, error: "Failed to update election settings" };
+  }
+}
+
 export async function updateElectionStatus(electionId: string, status: string) {
   const session = await getOrgAdminSession();
   if (!session) {
@@ -230,11 +314,38 @@ export async function updateElectionStatus(electionId: string, status: string) {
         id: electionId,
         orgId: session.orgId,
       },
-      data: { status },
+      data: { status: status as "DRAFT" | "ACTIVE" | "CLOSED" | "CANCELLED" },
     });
 
     if (election.count === 0) {
       return { success: false, error: "Election not found" };
+    }
+
+    // If election is CLOSED or CANCELLED, mark all member accounts linked to it as dormant
+    // This preserves the data but prevents access after election ends
+    if (status === "CLOSED" || status === "CANCELLED") {
+      await db.member.updateMany({
+        where: {
+          electionId: electionId,
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    }
+
+    // If election is being reactivated (from CLOSED to ACTIVE), reactivate member accounts
+    if (status === "ACTIVE") {
+      await db.member.updateMany({
+        where: {
+          electionId: electionId,
+          isActive: false,
+        },
+        data: {
+          isActive: true,
+        },
+      });
     }
 
     revalidatePath("/organisation/dashboard");
@@ -247,16 +358,50 @@ export async function updateElectionStatus(electionId: string, status: string) {
   }
 }
 
-/**
- * Add position to election
- */
-export async function addPosition(electionId: string, positionName: string) {
+export async function toggleRealTimeResults(electionId: string, showRealTimeResults: boolean) {
   const session = await getOrgAdminSession();
   if (!session) {
     return { success: false, error: "Unauthorized" };
   }
 
-  const nameValidation = validateAndSanitizeInput(positionName, {
+  try {
+    const election = await db.election.updateMany({
+      where: {
+        id: electionId,
+        orgId: session.orgId,
+      },
+      data: { showRealTimeResults },
+    });
+
+    if (election.count === 0) {
+      return { success: false, error: "Election not found" };
+    }
+
+    revalidatePath(`/organisation/dashboard/elections/${electionId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Toggle real-time results error:", error);
+    return { success: false, error: "Failed to update setting" };
+  }
+}
+
+export async function addPosition(
+  electionId: string, 
+  data: { 
+    name: string; 
+    description?: string; 
+    maxWinners?: number;
+    minVotes?: number;
+    maxVotes?: number;
+  }
+) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const nameValidation = validateAndSanitizeInput(data.name, {
     type: "text",
     maxLength: 100,
     required: true,
@@ -266,12 +411,12 @@ export async function addPosition(electionId: string, positionName: string) {
   }
 
   try {
-    // Verify election belongs to organization
     const election = await db.election.findFirst({
       where: {
         id: electionId,
         orgId: session.orgId,
       },
+      include: { _count: { select: { positions: true } } },
     });
 
     if (!election) {
@@ -282,6 +427,11 @@ export async function addPosition(electionId: string, positionName: string) {
       data: {
         electionId,
         name: nameValidation.sanitized!,
+        description: data.description || null,
+        maxWinners: data.maxWinners || 1,
+        minVotes: data.minVotes || 1,
+        maxVotes: data.maxVotes || 1,
+        displayOrder: election._count.positions,
       },
     });
 
@@ -294,9 +444,51 @@ export async function addPosition(electionId: string, positionName: string) {
   }
 }
 
-/**
- * Delete position
- */
+export async function updatePosition(
+  positionId: string,
+  data: { 
+    name?: string; 
+    description?: string; 
+    maxWinners?: number;
+    minVotes?: number;
+    maxVotes?: number;
+  }
+) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const position = await db.position.findFirst({
+      where: { id: positionId },
+      include: { election: true },
+    });
+
+    if (!position || position.election.orgId !== session.orgId) {
+      return { success: false, error: "Position not found" };
+    }
+
+    const updated = await db.position.update({
+      where: { id: positionId },
+      data: {
+        name: data.name,
+        description: data.description,
+        maxWinners: data.maxWinners,
+        minVotes: data.minVotes,
+        maxVotes: data.maxVotes,
+      },
+    });
+
+    revalidatePath(`/organisation/dashboard/elections/${position.electionId}`);
+
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Update position error:", error);
+    return { success: false, error: "Failed to update position" };
+  }
+}
+
 export async function deletePosition(positionId: string) {
   const session = await getOrgAdminSession();
   if (!session) {
@@ -304,12 +496,9 @@ export async function deletePosition(positionId: string) {
   }
 
   try {
-    // Verify position belongs to organization's election
     const position = await db.position.findFirst({
       where: { id: positionId },
-      include: {
-        election: true,
-      },
+      include: { election: true },
     });
 
     if (!position || position.election.orgId !== session.orgId) {
@@ -329,16 +518,21 @@ export async function deletePosition(positionId: string) {
   }
 }
 
-/**
- * Add candidate to position
- */
-export async function addCandidate(positionId: string, candidateName: string) {
+export async function addCandidate(
+  positionId: string, 
+  data: {
+    name: string;
+    bio?: string;
+    manifesto?: string;
+    photoUrl?: string;
+  }
+) {
   const session = await getOrgAdminSession();
   if (!session) {
     return { success: false, error: "Unauthorized" };
   }
 
-  const nameValidation = validateAndSanitizeInput(candidateName, {
+  const nameValidation = validateAndSanitizeInput(data.name, {
     type: "text",
     maxLength: 100,
     required: true,
@@ -348,11 +542,11 @@ export async function addCandidate(positionId: string, candidateName: string) {
   }
 
   try {
-    // Verify position belongs to organization's election
     const position = await db.position.findFirst({
       where: { id: positionId },
-      include: {
+      include: { 
         election: true,
+        _count: { select: { candidates: true } },
       },
     });
 
@@ -364,6 +558,11 @@ export async function addCandidate(positionId: string, candidateName: string) {
       data: {
         positionId,
         name: nameValidation.sanitized!,
+        bio: data.bio || null,
+        manifesto: data.manifesto || null,
+        photoUrl: data.photoUrl || null,
+        isApproved: true,
+        displayOrder: position._count.candidates,
       },
     });
 
@@ -376,9 +575,49 @@ export async function addCandidate(positionId: string, candidateName: string) {
   }
 }
 
-/**
- * Delete candidate
- */
+export async function updateCandidate(
+  candidateId: string,
+  data: {
+    name?: string;
+    bio?: string;
+    manifesto?: string;
+    photoUrl?: string;
+  }
+) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const candidate = await db.candidate.findFirst({
+      where: { id: candidateId },
+      include: { position: { include: { election: true } } },
+    });
+
+    if (!candidate || candidate.position.election.orgId !== session.orgId) {
+      return { success: false, error: "Candidate not found" };
+    }
+
+    const updated = await db.candidate.update({
+      where: { id: candidateId },
+      data: {
+        name: data.name,
+        bio: data.bio,
+        manifesto: data.manifesto,
+        photoUrl: data.photoUrl,
+      },
+    });
+
+    revalidatePath(`/organisation/dashboard/elections/${candidate.position.electionId}`);
+
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Update candidate error:", error);
+    return { success: false, error: "Failed to update candidate" };
+  }
+}
+
 export async function deleteCandidate(candidateId: string) {
   const session = await getOrgAdminSession();
   if (!session) {
@@ -386,16 +625,9 @@ export async function deleteCandidate(candidateId: string) {
   }
 
   try {
-    // Verify candidate belongs to organization's election
     const candidate = await db.candidate.findFirst({
       where: { id: candidateId },
-      include: {
-        position: {
-          include: {
-            election: true,
-          },
-        },
-      },
+      include: { position: { include: { election: true } } },
     });
 
     if (!candidate || candidate.position.election.orgId !== session.orgId) {
@@ -415,9 +647,298 @@ export async function deleteCandidate(candidateId: string) {
   }
 }
 
-/**
- * Get real-time election statistics
- */
+export async function addApplicationFormField(
+  electionId: string,
+  data: {
+    fieldName: string;
+    fieldType: string;
+    isRequired: boolean;
+    options?: string;
+    placeholder?: string;
+  }
+) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const election = await db.election.findFirst({
+      where: { id: electionId, orgId: session.orgId },
+      include: { _count: { select: { applicationForm: true } } },
+    });
+
+    if (!election) {
+      return { success: false, error: "Election not found" };
+    }
+
+    const field = await db.applicationFormField.create({
+      data: {
+        electionId,
+        fieldName: data.fieldName,
+        fieldType: data.fieldType,
+        isRequired: data.isRequired,
+        options: data.options || null,
+        placeholder: data.placeholder || null,
+        displayOrder: election._count.applicationForm,
+      },
+    });
+
+    revalidatePath(`/organisation/dashboard/elections/${electionId}`);
+
+    return { success: true, data: field };
+  } catch (error) {
+    console.error("Add form field error:", error);
+    return { success: false, error: "Failed to add form field" };
+  }
+}
+
+export async function deleteApplicationFormField(fieldId: string) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const field = await db.applicationFormField.findFirst({
+      where: { id: fieldId },
+      include: { election: true },
+    });
+
+    if (!field || field.election.orgId !== session.orgId) {
+      return { success: false, error: "Field not found" };
+    }
+
+    await db.applicationFormField.delete({
+      where: { id: fieldId },
+    });
+
+    revalidatePath(`/organisation/dashboard/elections/${field.electionId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Delete form field error:", error);
+    return { success: false, error: "Failed to delete form field" };
+  }
+}
+
+export async function getVoterCodes(electionId: string) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const election = await db.election.findFirst({
+      where: { id: electionId, orgId: session.orgId },
+    });
+
+    if (!election) {
+      return { success: false, error: "Election not found" };
+    }
+
+    const codes = await db.voterCode.findMany({
+      where: { electionId },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return { success: true, data: codes };
+  } catch (error) {
+    console.error("Get voter codes error:", error);
+    return { success: false, error: "Failed to fetch voter codes" };
+  }
+}
+
+export async function generateAdditionalVoterCodes(electionId: string, count: number) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  if (count < 1 || count > 10000) {
+    return { success: false, error: "Count must be between 1 and 10,000" };
+  }
+
+  try {
+    const election = await db.election.findFirst({
+      where: { id: electionId, orgId: session.orgId },
+    });
+
+    if (!election) {
+      return { success: false, error: "Election not found" };
+    }
+
+    const organisation = await db.organisation.findUnique({
+      where: { id: session.orgId },
+      select: { orgCode: true },
+    });
+
+    if (!organisation?.orgCode) {
+      return { success: false, error: "Organization code not found" };
+    }
+
+    const voterCodes = generateMemberCodes(organisation.orgCode, count * 2);
+    
+    const existingCodes = await db.voterCode.findMany({
+      where: { code: { in: voterCodes } },
+      select: { code: true },
+    });
+    const existingCodeSet = new Set(existingCodes.map(c => c.code));
+    const uniqueCodes = voterCodes.filter(code => !existingCodeSet.has(code)).slice(0, count);
+
+    await db.voterCode.createMany({
+      data: uniqueCodes.map(code => ({
+        orgId: session.orgId,
+        electionId,
+        code,
+        status: "UNUSED",
+      })),
+    });
+
+    await db.election.update({
+      where: { id: electionId },
+      data: { numberOfVoters: { increment: uniqueCodes.length } },
+    });
+
+    revalidatePath(`/organisation/dashboard/elections/${electionId}`);
+
+    return { success: true, data: { generated: uniqueCodes.length } };
+  } catch (error) {
+    console.error("Generate voter codes error:", error);
+    return { success: false, error: "Failed to generate voter codes" };
+  }
+}
+
+export async function markCodesAsPrinted(electionId: string, codeIds: string[]) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await db.voterCode.updateMany({
+      where: {
+        id: { in: codeIds },
+        electionId,
+        election: { orgId: session.orgId },
+      },
+      data: { printedAt: new Date() },
+    });
+
+    revalidatePath(`/organisation/dashboard/elections/${electionId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Mark codes as printed error:", error);
+    return { success: false, error: "Failed to mark codes as printed" };
+  }
+}
+
+export async function getApplications(electionId: string, status?: string) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const election = await db.election.findFirst({
+      where: { id: electionId, orgId: session.orgId },
+    });
+
+    if (!election) {
+      return { success: false, error: "Election not found" };
+    }
+
+    const applications = await db.candidateApplication.findMany({
+      where: {
+        electionId,
+        ...(status ? { status: status as "PENDING" | "APPROVED" | "REJECTED" } : {}),
+      },
+      include: {
+        position: true,
+        applicant: {
+          select: { id: true, fullName: true, email: true, memberCode: true },
+        },
+        responses: {
+          include: { field: true },
+        },
+      },
+      orderBy: { submittedAt: "desc" },
+    });
+
+    return { success: true, data: applications };
+  } catch (error) {
+    console.error("Get applications error:", error);
+    return { success: false, error: "Failed to fetch applications" };
+  }
+}
+
+export async function reviewApplication(
+  applicationId: string,
+  decision: "APPROVED" | "REJECTED",
+  reviewNotes?: string
+) {
+  const session = await getOrgAdminSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const application = await db.candidateApplication.findFirst({
+      where: { id: applicationId },
+      include: { 
+        election: true,
+        position: { include: { _count: { select: { candidates: true } } } },
+        applicant: true,
+        responses: {
+          include: { field: true },
+        },
+      },
+    });
+
+    if (!application || application.election.orgId !== session.orgId) {
+      return { success: false, error: "Application not found" };
+    }
+
+    const result = await db.$transaction(async (tx) => {
+      const updated = await tx.candidateApplication.update({
+        where: { id: applicationId },
+        data: {
+          status: decision,
+          reviewNotes: reviewNotes || null,
+          reviewedAt: new Date(),
+          reviewedBy: session.memberId,
+        },
+      });
+
+      if (decision === "APPROVED") {
+        await tx.candidate.create({
+          data: {
+            positionId: application.positionId,
+            name: application.applicant.fullName,
+            bio: application.responses.find(r => r.field?.fieldName === "Bio")?.value || null,
+            manifesto: application.responses.find(r => r.field?.fieldName === "Manifesto")?.value || null,
+            photoUrl: application.responses.find(r => r.field?.fieldType === "file")?.fileUrl || null,
+            isApproved: true,
+            displayOrder: application.position._count.candidates,
+            applicationId: application.id,
+          },
+        });
+      }
+
+      return updated;
+    });
+
+    revalidatePath(`/organisation/dashboard/elections/${application.electionId}`);
+    revalidatePath(`/organisation/dashboard/applications`);
+
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Review application error:", error);
+    return { success: false, error: "Failed to review application" };
+  }
+}
+
 export async function getElectionStats(electionId: string) {
   const session = await getOrgAdminSession();
   if (!session) {
@@ -426,30 +947,19 @@ export async function getElectionStats(electionId: string) {
 
   try {
     const election = await db.election.findFirst({
-      where: {
-        id: electionId,
-        orgId: session.orgId,
-      },
+      where: { id: electionId, orgId: session.orgId },
       include: {
         positions: {
           include: {
             candidates: {
               include: {
-                _count: {
-                  select: { votes: true },
-                },
+                _count: { select: { votes: true } },
               },
             },
-            _count: {
-              select: { votes: true },
-            },
+            _count: { select: { votes: true } },
           },
         },
-        _count: {
-          select: {
-            ballots: true,
-          },
-        },
+        _count: { select: { ballots: true, voterCodes: true } },
       },
     });
 
@@ -457,21 +967,43 @@ export async function getElectionStats(electionId: string) {
       return { success: false, error: "Election not found" };
     }
 
-    // Get total number of eligible voters (members with role VOTER)
-    const totalVoters = await db.member.count({
-      where: {
-        orgId: session.orgId,
-        role: "VOTER",
-      },
+    const usedCodes = await db.voterCode.count({
+      where: { electionId, status: "USED" },
     });
+
+    const positionResults = election.positions.map(pos => ({
+      id: pos.id,
+      name: pos.name,
+      maxWinners: pos.maxWinners,
+      totalVotes: pos._count.votes,
+      candidates: pos.candidates
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          photoUrl: c.photoUrl,
+          votes: c._count.votes,
+          percentage: pos._count.votes > 0 ? (c._count.votes / pos._count.votes) * 100 : 0,
+        }))
+        .sort((a, b) => b.votes - a.votes),
+    }));
 
     return {
       success: true,
       data: {
-        election,
-        totalVoters,
+        election: {
+          id: election.id,
+          title: election.title,
+          status: election.status,
+          startDate: election.startDate,
+          endDate: election.endDate,
+        },
+        totalVoters: election._count.voterCodes,
         votesCast: election._count.ballots,
-        participationRate: totalVoters > 0 ? (election._count.ballots / totalVoters) * 100 : 0,
+        usedCodes,
+        participationRate: election._count.voterCodes > 0 
+          ? (usedCodes / election._count.voterCodes) * 100 
+          : 0,
+        positionResults,
       },
     };
   } catch (error) {
@@ -479,4 +1011,3 @@ export async function getElectionStats(electionId: string) {
     return { success: false, error: "Failed to fetch election statistics" };
   }
 }
-

@@ -6,15 +6,22 @@ import Link from "next/link";
 import { createElection } from "../actions";
 import styles from "./newElection.module.css";
 
+type CandidateMethod = "MANUAL" | "APPLICATION";
+
 export default function NewElectionClient() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
+    description: "",
     startDate: "",
     endDate: "",
     numberOfVoters: "",
+    candidateMethod: "MANUAL" as CandidateMethod,
+    applicationStartDate: "",
+    applicationEndDate: "",
+    showRealTimeResults: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,9 +32,17 @@ export default function NewElectionClient() {
     try {
       const formDataObj = new FormData();
       formDataObj.append("title", formData.title);
+      formDataObj.append("description", formData.description);
       formDataObj.append("startDate", formData.startDate);
       formDataObj.append("endDate", formData.endDate);
       formDataObj.append("numberOfVoters", formData.numberOfVoters);
+      formDataObj.append("candidateMethod", formData.candidateMethod);
+      
+      if (formData.candidateMethod === "APPLICATION") {
+        formDataObj.append("applicationStartDate", formData.applicationStartDate);
+        formDataObj.append("applicationEndDate", formData.applicationEndDate);
+      }
+      formDataObj.append("showRealTimeResults", String(formData.showRealTimeResults));
 
       const result = await createElection(formDataObj);
 
@@ -43,16 +58,27 @@ export default function NewElectionClient() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  // Set minimum date to today
-  const today = new Date().toISOString().split("T")[0];
-  const minEndDate = formData.startDate || today;
+  // Get current datetime in format YYYY-MM-DDTHH:mm for datetime-local input
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const todayDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+  
+  // For min date (date only) - used for date inputs if any
+  const today = `${year}-${month}-${day}`;
+  
+  // For end date minimum - use start date if set, otherwise use current datetime
+  const minEndDate = formData.startDate || todayDateTime;
 
   return (
     <div className={styles.container}>
@@ -86,72 +112,228 @@ export default function NewElectionClient() {
               </div>
             )}
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                Election Title <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder="e.g., 2024 Student Council Election"
-                required
-                maxLength={200}
-              />
-            </div>
-
-            <div className={styles.formRow}>
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>Basic Information</h3>
+              
               <div className={styles.formGroup}>
                 <label className={styles.label}>
-                  Start Date & Time <span className={styles.required}>*</span>
+                  Election Title <span className={styles.required}>*</span>
                 </label>
                 <input
-                  type="datetime-local"
-                  name="startDate"
-                  value={formData.startDate}
+                  type="text"
+                  name="title"
+                  value={formData.title}
                   onChange={handleChange}
                   className={styles.input}
-                  min={today}
+                  placeholder="e.g., 2024 Student Council Election"
                   required
+                  maxLength={200}
                 />
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  End Date & Time <span className={styles.required}>*</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  name="endDate"
-                  value={formData.endDate}
+                <label className={styles.label}>Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
                   onChange={handleChange}
-                  className={styles.input}
-                  min={minEndDate}
-                  required
+                  className={styles.textarea}
+                  placeholder="Provide a brief description of this election..."
+                  rows={3}
                 />
               </div>
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                Number of Voters <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="number"
-                name="numberOfVoters"
-                value={formData.numberOfVoters}
-                onChange={handleChange}
-                className={styles.input}
-                placeholder="e.g., 500"
-                min="1"
-                max="100000"
-                required
-              />
-              <p className={styles.hint}>
-                This will generate unique voter codes for each voter. Voters will use these codes to create their accounts and participate in the election.
-              </p>
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>Voting Period</h3>
+              
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Start Date & Time <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="startDate"
+                    value={formData.startDate}
+                    onChange={handleChange}
+                    className={styles.input}
+                    min={todayDateTime}
+                    step="60"
+                    required
+                  />
+                  <p className={styles.hint}>
+                    Select date first, then click on the time section (--:--) to set the time
+                  </p>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    End Date & Time <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="endDate"
+                    value={formData.endDate}
+                    onChange={handleChange}
+                    className={styles.input}
+                    min={minEndDate}
+                    step="60"
+                    required
+                  />
+                  <p className={styles.hint}>
+                    Select date first, then click on the time section (--:--) to set the time
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>Voter Configuration</h3>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Number of Voters <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="number"
+                  name="numberOfVoters"
+                  value={formData.numberOfVoters}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="e.g., 500"
+                  min="1"
+                  max="100000"
+                  required
+                />
+                <p className={styles.hint}>
+                  Unique 5-character voter codes will be generated. Format: 2 org letters + 3 unique characters (e.g., AB123).
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>Candidate Setup Method</h3>
+              
+              <div className={styles.methodSelector}>
+                <label 
+                  className={`${styles.methodOption} ${formData.candidateMethod === "MANUAL" ? styles.methodSelected : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="candidateMethod"
+                    value="MANUAL"
+                    checked={formData.candidateMethod === "MANUAL"}
+                    onChange={handleChange}
+                    className={styles.radioInput}
+                  />
+                  <div className={styles.methodContent}>
+                    <div className={styles.methodIcon}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </div>
+                    <div className={styles.methodText}>
+                      <h4>Manual Setup</h4>
+                      <p>You add candidates directly for each position</p>
+                    </div>
+                  </div>
+                </label>
+
+                <label 
+                  className={`${styles.methodOption} ${formData.candidateMethod === "APPLICATION" ? styles.methodSelected : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="candidateMethod"
+                    value="APPLICATION"
+                    checked={formData.candidateMethod === "APPLICATION"}
+                    onChange={handleChange}
+                    className={styles.radioInput}
+                  />
+                  <div className={styles.methodContent}>
+                    <div className={styles.methodIcon}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                      </svg>
+                    </div>
+                    <div className={styles.methodText}>
+                      <h4>Application Portal</h4>
+                      <p>Members apply to become candidates, you review and approve</p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {formData.candidateMethod === "APPLICATION" && (
+                <div className={styles.applicationConfig}>
+                  <p className={styles.configHint}>
+                    Set the period during which members can submit their candidacy applications.
+                  </p>
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>
+                        Application Start <span className={styles.required}>*</span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name="applicationStartDate"
+                        value={formData.applicationStartDate}
+                        onChange={handleChange}
+                        className={styles.input}
+                        min={todayDateTime}
+                        step="60"
+                        required={formData.candidateMethod === "APPLICATION"}
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>
+                        Application End <span className={styles.required}>*</span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name="applicationEndDate"
+                        value={formData.applicationEndDate}
+                        onChange={handleChange}
+                        className={styles.input}
+                        min={formData.applicationStartDate || todayDateTime}
+                        step="60"
+                        required={formData.candidateMethod === "APPLICATION"}
+                      />
+                      <p className={styles.hint}>
+                        Application period should end before voting starts.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.section}>
+              <h3 className={styles.sectionTitle}>Results Visibility</h3>
+              
+              <div className={styles.formGroup}>
+                <label className={styles.checkboxWrapper} style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.showRealTimeResults}
+                    onChange={(e) => setFormData({ ...formData, showRealTimeResults: e.target.checked })}
+                    style={{ width: "20px", height: "20px", cursor: "pointer" }}
+                  />
+                  <span style={{ fontWeight: "500" }}>Show real-time voting results</span>
+                </label>
+                <p className={styles.hint} style={{ marginTop: "0.5rem" }}>
+                  {formData.showRealTimeResults 
+                    ? "Voters and admins can see live vote counts during the election."
+                    : "Results will be hidden until you close the election and announce them."}
+                </p>
+              </div>
             </div>
 
             <div className={styles.formActions}>
@@ -192,24 +374,47 @@ export default function NewElectionClient() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span>Voter codes will be automatically generated for all specified voters</span>
+              <span>Unique voter codes (5 characters) will be generated and ready to print</span>
             </li>
             <li>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span>You can add positions and candidates after creating the election</span>
+              <span>Add positions with customizable winner counts</span>
             </li>
+            {formData.candidateMethod === "MANUAL" ? (
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Manually add candidates with photos, bios, and manifestos</span>
+              </li>
+            ) : (
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Create custom application forms for candidates to fill</span>
+              </li>
+            )}
             <li>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span>Election will start in DRAFT status until you activate it</span>
+              <span>Activate when ready — starts in DRAFT status</span>
             </li>
           </ul>
+
+          <div className={styles.codePreview}>
+            <h4>Voter Code Format</h4>
+            <div className={styles.codeExample}>
+              <span className={styles.codeOrg}>AB</span>
+              <span className={styles.codeMember}>123</span>
+            </div>
+            <p>First 2 = Org ID, Last 3 = Unique voter identifier</p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
