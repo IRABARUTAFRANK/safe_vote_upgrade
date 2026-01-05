@@ -753,6 +753,29 @@
   text-decoration: none;
 }
 
+<<<<<<< HEAD
+=======
+.footerCredit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  width: 100%;
+}
+
+.creditName {
+  font-weight: 700;
+  color: white;
+  font-size: 1rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 /* ===== STATS SECTION ===== */
 .statsSection {
   padding: 4rem 0;

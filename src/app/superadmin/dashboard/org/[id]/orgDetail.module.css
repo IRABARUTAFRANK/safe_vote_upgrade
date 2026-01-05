@@ -312,6 +312,7 @@
   background: rgba(239, 68, 68, 0.25);
 }
 
+<<<<<<< HEAD
 .dangerZone {
   margin-top: 2rem;
   padding: 1.5rem;
@@ -359,6 +360,8 @@
   transform: translateY(-1px);
 }
 
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 /* Table Styles */
 .tableWrapper {
   overflow-x: auto;

@@ -1,7 +1,11 @@
 "use server";
 
 import { db } from "@/lib/db";
+<<<<<<< HEAD
 import { generateOrgCode, generateMemberCode, extractOrgIdentity } from '@/lib/orgCode';
+=======
+import { generateOrgCode } from '@/lib/orgCode';
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 import bcrypt from "bcryptjs";
 import {
   checkRateLimit,
@@ -89,6 +93,7 @@ export async function registerOrganisation(formData: FormData) {
             },
           });
 
+<<<<<<< HEAD
           // Generate member code using org identity
           const orgIdentity = extractOrgIdentity(orgCode);
           let memberCode = generateMemberCode(orgIdentity);
@@ -102,13 +107,19 @@ export async function registerOrganisation(formData: FormData) {
             memberCodeRetries++;
           }
 
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
           await tx.member.create({
             data: {
               orgId: organisation.id,
               fullName: fullNameValidation.sanitized!,
               email: emailValidation.sanitized!,
               passwordHash: passwordHash,
+<<<<<<< HEAD
               memberCode,
+=======
+              memberCode: `ADM-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
               role: "ORG_ADMIN",
             },
           });

@@ -60,6 +60,7 @@ footer { margin-top: 2rem; padding: 2rem 1rem; color: white; }
   --text: #e6eef8;
   --muted: #9aa9bf;
   --green-600: #34d399;
+<<<<<<< HEAD
   --card-bg: #0f1d32;
   --border-color: #1e3a5f;
   --input-bg: #0f1d32;
@@ -103,6 +104,8 @@ footer { margin-top: 2rem; padding: 2rem 1rem; color: white; }
 :root[data-accent='cyan'] {
   --accent-primary: #06b6d4;
   --accent-secondary: #0891b2;
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
 
 /* Prefer system dark when no explicit theme is set */
@@ -111,8 +114,11 @@ footer { margin-top: 2rem; padding: 2rem 1rem; color: white; }
     --bg: #071126;
     --text: #e6eef8;
     --muted: #9aa9bf;
+<<<<<<< HEAD
     --card-bg: #0f1d32;
     --border-color: #1e3a5f;
     --input-bg: #0f1d32;
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   }
 }

@@ -4,7 +4,11 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./orgDetail.module.css";
+<<<<<<< HEAD
 import { approveOrganisation, rejectOrganisation, generateOrgCodeForOrg, sendOrgCodeEmail, deleteOrganisation } from "../../actions";
+=======
+import { approveOrganisation, rejectOrganisation, generateOrgCodeForOrg, sendOrgCodeEmail } from "../../actions";
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 
 interface OrganisationDetailClientProps {
   session: {
@@ -49,7 +53,11 @@ export default function OrganisationDetailClient({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(organisation.orgCode);
   const [isTossing, setIsTossing] = useState(false);
+<<<<<<< HEAD
   const [displayCode, setDisplayCode] = useState<string>(organisation.orgCode || "SV-XXXX");
+=======
+  const [displayCode, setDisplayCode] = useState<string>(organisation.orgCode || "SV-XXXXXXXX");
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Animated code generation with "tossing" effect
@@ -70,10 +78,18 @@ export default function OrganisationDetailClient({
     let currentUpdate = 0;
 
     const animationInterval = setInterval(() => {
+<<<<<<< HEAD
       // Generate random characters for the code part (4 characters after "SV-", first 2 = last 2)
       let randomCode = prefix;
       const firstTwo = chars[Math.floor(Math.random() * chars.length)] + chars[Math.floor(Math.random() * chars.length)];
       randomCode += firstTwo + firstTwo; // Format: SV-XXXX where first 2 = last 2
+=======
+      // Generate random characters for the code part (8 characters after "SV-")
+      let randomCode = prefix;
+      for (let i = 0; i < 8; i++) {
+        randomCode += chars[Math.floor(Math.random() * chars.length)];
+      }
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
       setDisplayCode(randomCode);
       currentUpdate++;
 
@@ -128,6 +144,7 @@ export default function OrganisationDetailClient({
     }
   }
 
+<<<<<<< HEAD
   async function onDelete() {
     const confirm = window.confirm(
       `⚠️ DANGER: Delete "${organisation.name}"?\n\n` +
@@ -164,6 +181,8 @@ export default function OrganisationDetailClient({
     }
   }
 
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString("en-US", {
       month: "short",
@@ -274,7 +293,11 @@ export default function OrganisationDetailClient({
                     setIsSendingEmail(true);
                     const result = await sendOrgCodeEmail(organisation.id);
                     if (result.success) {
+<<<<<<< HEAD
                       alert(result.message || `Organization code logged for ${organisation.email}. Email functionality needs to be configured.`);
+=======
+                      alert("Organization code sent successfully to " + organisation.email);
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
                     } else {
                       alert(result.error || "Failed to send email");
                     }
@@ -321,6 +344,7 @@ export default function OrganisationDetailClient({
               </button>
             </div>
           )}
+<<<<<<< HEAD
 
           {/* Danger Zone - Delete Organisation */}
           <div className={styles.dangerZone}>
@@ -336,6 +360,8 @@ export default function OrganisationDetailClient({
               Delete Organisation
             </button>
           </div>
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
         </div>
 
         {/* Members Section */}

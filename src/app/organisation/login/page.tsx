@@ -203,7 +203,11 @@ export default function OrgLoginPage() {
                         className={styles.fieldInput}
                         value={orgCode} 
                         onChange={e => setOrgCode(e.target.value.toUpperCase())} 
+<<<<<<< HEAD
                         placeholder="SV-XXXX"
+=======
+                        placeholder="SV-XXXXXXXX"
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
                         required
                         autoFocus
                         style={{ textAlign: "center", fontFamily: "monospace", letterSpacing: "0.1em", fontSize: "1.1rem" }}
@@ -267,6 +271,12 @@ export default function OrgLoginPage() {
                 Don't have an account?{' '}
                 <Link href="/register" className={styles.formFooterLink}>Register your organization</Link>
               </p>
+<<<<<<< HEAD
+=======
+              <p className={styles.formFooterText} style={{ marginTop: "0.5rem" }}>
+                <Link href="/organisation/pending" className={styles.formFooterLink}>Check registration status</Link>
+              </p>
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
             </div>
 
             <div className={styles.securityBadge}>

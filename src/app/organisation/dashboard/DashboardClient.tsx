@@ -6,9 +6,12 @@ import Link from "next/link";
 import styles from "./dashboard.module.css";
 import { logoutOrgAdminAction } from "./actions";
 import ThemeToggle from "../../components/ThemeToggle";
+<<<<<<< HEAD
 import StatusDistributionChart from "./components/StatusDistributionChart";
 import VotesTimelineChart from "./components/VotesTimelineChart";
 import ElectionPerformanceChart from "./components/ElectionPerformanceChart";
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 
 interface DashboardClientProps {
   session: {
@@ -37,6 +40,7 @@ interface DashboardClientProps {
       totalMembers: number;
       totalElections: number;
       activeElections: number;
+<<<<<<< HEAD
       draftElections: number;
       closedElections: number;
       totalVotes: number;
@@ -61,6 +65,13 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ session, data, elections }: DashboardClientProps) {
+=======
+    };
+  };
+}
+
+export default function DashboardClient({ session, data }: DashboardClientProps) {
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   const router = useRouter();
 
   async function handleLogout() {
@@ -166,6 +177,7 @@ export default function DashboardClient({ session, data, elections }: DashboardC
               <span className={styles.statLabel}>Active Elections</span>
             </div>
           </div>
+<<<<<<< HEAD
 
           <div className={styles.statCard}>
             <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #8b5cf6, #7c3aed)" }}>
@@ -217,19 +229,32 @@ export default function DashboardClient({ session, data, elections }: DashboardC
           </div>
         )}
 
+=======
+        </div>
+
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
         {/* Quick Actions */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>Quick Actions</h2>
           </div>
           <div className={styles.actionsGrid}>
+<<<<<<< HEAD
             <Link href="/organisation/dashboard/elections/new" className={styles.actionBtn}>
+=======
+            <button className={styles.actionBtn} disabled>
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
               <span>Create Election</span>
+<<<<<<< HEAD
             </Link>
+=======
+              <span className={styles.comingSoon}>Coming Soon</span>
+            </button>
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
             <button className={styles.actionBtn} disabled>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -252,6 +277,7 @@ export default function DashboardClient({ session, data, elections }: DashboardC
             </button>
           </div>
         </div>
+<<<<<<< HEAD
 
         {/* Elections List */}
         <div className={styles.card}>
@@ -323,6 +349,8 @@ export default function DashboardClient({ session, data, elections }: DashboardC
             </div>
           )}
         </div>
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
       </div>
     </div>
   );

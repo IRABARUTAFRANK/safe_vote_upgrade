@@ -219,7 +219,11 @@ export default function VoteLoginPage() {
                 <div className={styles.formFooter} style={{ marginTop: 0, textAlign: 'left' }}>
                   <p className={styles.formFooterText}>
                     Are you an organization admin?{' '}
+<<<<<<< HEAD
                     <Link href="/organisation/login" className={styles.formFooterLink}>Organization Login</Link>
+=======
+                    <Link href="/admin/login" className={styles.formFooterLink}>Admin Login</Link>
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
                   </p>
                 </div>
               </form>

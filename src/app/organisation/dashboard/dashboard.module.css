@@ -198,7 +198,10 @@
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+<<<<<<< HEAD
   text-decoration: none;
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
 
 .actionBtn:not(:disabled):hover {
@@ -224,6 +227,7 @@
   letter-spacing: 0.05em;
 }
 
+<<<<<<< HEAD
 .viewAllLink {
   color: #3b82f6;
   font-size: 0.9rem;
@@ -330,6 +334,8 @@
   color: #94a3b8;
 }
 
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 @media (max-width: 768px) {
   .content {
     padding: 1rem;
@@ -344,6 +350,7 @@
   .statsGrid {
     grid-template-columns: 1fr;
   }
+<<<<<<< HEAD
 
   .electionMeta {
     flex-direction: column;
@@ -416,5 +423,7 @@
   .chartContent {
     min-height: 250px;
   }
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
 

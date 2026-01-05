@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+<<<<<<< HEAD
 /**
  * Generate organization code in format: SV-XXXX
  * Where XXXX is 4 characters, first 2 are org identity, last 2 are also org identity
@@ -53,4 +54,10 @@ export function extractOrgIdentity(orgCode: string): string {
     identity += chars[Math.floor(Math.random() * chars.length)];
   }
   return identity;
+=======
+export function generateOrgCode(prefix = 'SV'){
+  // 6 random bytes => 8 base64url chars when encoded
+  const id = crypto.randomBytes(6).toString('base64url').toUpperCase();
+  return `${prefix}-${id}`;
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }

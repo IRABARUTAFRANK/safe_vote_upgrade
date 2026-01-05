@@ -13,6 +13,7 @@ enum OrgStatus {
   REJECTED
 }
 
+<<<<<<< HEAD
 enum ElectionStatus {
   DRAFT
   ACTIVE
@@ -146,11 +147,94 @@ model Position {
   candidates   Candidate[]
   votes        Vote[]
   applications CandidateApplication[]
+=======
+// Super Admin - Platform Level Administration
+model SuperAdmin {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  fullName      String
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  lastLoginIp   String?
+  failedAttempts Int      @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Audit trail for super admin actions
+  adminLogs     SuperAdminLog[]
+}
+
+model SuperAdminLog {
+  id            String     @id @default(cuid())
+  adminId       String
+  admin         SuperAdmin @relation(fields: [adminId], references: [id])
+  action        String     // LOGIN, LOGOUT, APPROVE_ORG, REJECT_ORG, etc.
+  targetType    String?    // Organisation, Member, Election, etc.
+  targetId      String?
+  details       String?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime   @default(now())
+}
+
+model Organisation {
+  id            String    @id @default(cuid())
+  name          String
+  type          String?   // School, NGO, Corp
+  email         String    @unique
+  orgCode       String?   @unique
+  status        OrgStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  
+  // Relations
+  elections     Election[]
+  members       Member[]
+  auditLogs     AuditLog[]
+}
+
+model Member {
+  id            String       @id @default(cuid())
+  orgId         String
+  organisation  Organisation @relation(fields: [orgId], references: [id])
+  
+  email         String?      
+  fullName      String
+  passwordHash  String?      // Nullable because simple voters might only use a PIN/Code
+  memberCode    String       @unique
+  role          String       @default("VOTER") // ORG_ADMIN or VOTER
+  
+  ballots       Ballot[]
+}
+
+model Election {
+  id              String       @id @default(cuid())
+  orgId           String
+  organisation    Organisation @relation(fields: [orgId], references: [id])
+  title           String
+  startDate       DateTime
+  endDate         DateTime
+  status          String       @default("DRAFT")
+  
+  positions       Position[]
+  ballots         Ballot[]
+}
+
+model Position {
+  id          String    @id @default(cuid())
+  electionId  String
+  election    Election  @relation(fields: [electionId], references: [id])
+  name        String    // e.g. "President"
+  candidates  Candidate[]
+  votes       Vote[]
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
 
 model Candidate {
   id          String    @id @default(cuid())
   positionId  String
+<<<<<<< HEAD
   position    Position  @relation(fields: [positionId], references: [id], onDelete: Cascade)
   name        String
   bio         String?
@@ -250,10 +334,32 @@ model Vote {
   id          String    @id @default(cuid())
   ballotId    String?
   ballot      Ballot?   @relation(fields: [ballotId], references: [id], onDelete: Cascade)
+=======
+  position    Position  @relation(fields: [positionId], references: [id])
+  name        String
+  votes       Vote[]
+}
+
+// ANTI-FRAUD LAYER: Tracks WHO voted
+model Ballot {
+  id          String    @id @default(cuid())
+  voterId     String
+  voter       Member    @relation(fields: [voterId], references: [id])
+  electionId  String
+  election    Election  @relation(fields: [electionId], references: [id])
+  createdAt   DateTime  @default(now())
+  ipAddress   String?
+}
+
+// SECRET LAYER: Tracks WHAT was voted (No link to Member!)
+model Vote {
+  id          String    @id @default(cuid())
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   positionId  String
   position    Position  @relation(fields: [positionId], references: [id])
   candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id])
+<<<<<<< HEAD
 
   @@unique([ballotId, positionId, candidateId])
 }
@@ -268,3 +374,17 @@ model AuditLog {
   ipAddress    String?
   createdAt    DateTime     @default(now())
 }
+=======
+}
+
+model AuditLog {
+  id              String       @id @default(cuid())
+  orgId           String
+  organisation    Organisation @relation(fields: [orgId], references: [id])
+  action          String
+  description     String
+  actorId         String
+  ipAddress       String?
+  createdAt       DateTime     @default(now())
+}
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7

@@ -4,7 +4,12 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./dashboard.module.css";
+<<<<<<< HEAD
 import { approveOrganisation, rejectOrganisation, handleLogout, generateOrgCodeForOrg, deleteOrganisation } from "./actions";
+=======
+import { approveOrganisation, rejectOrganisation, handleLogout, generateOrgCodeForOrg } from "./actions";
+import ThemeToggle from "../../components/ThemeToggle";
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 
 interface DashboardProps {
   session: {
@@ -63,6 +68,7 @@ export default function DashboardClient({ session, data }: DashboardProps) {
     }
   }
 
+<<<<<<< HEAD
   async function onDelete(orgId: string, orgName: string) {
     const confirm = window.confirm(
       `Are you sure you want to delete "${orgName}"?\n\n` +
@@ -99,6 +105,8 @@ export default function DashboardClient({ session, data }: DashboardProps) {
     }
   }
 
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString("en-US", {
       month: "short",
@@ -215,6 +223,10 @@ export default function DashboardClient({ session, data }: DashboardProps) {
             </p>
           </div>
           <div className={styles.headerActions}>
+<<<<<<< HEAD
+=======
+            <ThemeToggle />
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
             <div className={styles.liveIndicator}>
               <span className={styles.liveDot}></span>
               System Operational
@@ -357,11 +369,16 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                                 </button>
                               </>
                             )}
+<<<<<<< HEAD
+=======
+                            {/* Generate org code for organisations missing one */}
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
                             {!org.orgCode && (
                               <button className={styles.generateBtn} onClick={() => onGenerateCode(org.id)}>
                                 Generate Code
                               </button>
                             )}
+<<<<<<< HEAD
                             <button 
                               className={styles.deleteBtn} 
                               onClick={() => onDelete(org.id, org.name)}
@@ -373,13 +390,19 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                               </svg>
                               Delete
                             </button>
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
                           </div>
                         </td>
                       </tr>
                     ))}
                     {data.recentOrganisations.length === 0 && (
                       <tr>
+<<<<<<< HEAD
                         <td colSpan={7} className={styles.emptyState}>No organisations yet</td>
+=======
+                        <td colSpan={6} className={styles.emptyState}>No organisations yet</td>
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
                       </tr>
                     )}
                   </tbody>
@@ -451,6 +474,7 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                                 Generate Code
                               </button>
                             )}
+<<<<<<< HEAD
                             <button 
                               className={styles.deleteBtn} 
                               onClick={() => onDelete(org.id, org.name)}
@@ -462,13 +486,19 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                               </svg>
                               Delete
                             </button>
+=======
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
                           </div>
                         </td>
                       </tr>
                     ))}
                     {data.recentOrganisations.length === 0 && (
                       <tr>
+<<<<<<< HEAD
                         <td colSpan={8} className={styles.emptyState}>No organisations yet</td>
+=======
+                        <td colSpan={7} className={styles.emptyState}>No organisations yet</td>
+>>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
                       </tr>
                     )}
                   </tbody>
