@@ -37,10 +37,7 @@ export default function HomePage() {
         <div className={styles.navLinks}>
           <Link href="#features">Features</Link>
           <Link href="#how-it-works">How it Works</Link>
-<<<<<<< HEAD
-=======
           <Link href="/team">Our Team</Link>
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
           <Link href="#faq">FAQ</Link>
         </div>
 
@@ -306,22 +303,13 @@ export default function HomePage() {
           <div className={styles.footerLinks}>
             <Link href="/register">Register Organization</Link>
             <Link href="/vote/login">Voter Login</Link>
-<<<<<<< HEAD
-=======
             <Link href="/team">Our Team</Link>
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
             <Link href="#features">Features</Link>
             <Link href="#faq">FAQ</Link>
           </div>
         </div>
-<<<<<<< HEAD
-=======
-        <div className={styles.footerCredit}>
-          <span>Built with ❤️ by</span>
-          <span className={styles.creditName}>Frank</span>
-        </div>
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
       </footer>
     </div>
   );
 }
+

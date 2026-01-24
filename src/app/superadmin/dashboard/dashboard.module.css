@@ -230,10 +230,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-<<<<<<< HEAD
-=======
   flex-wrap: wrap;
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
 
 .liveIndicator {
@@ -458,7 +455,6 @@
   font-size: 0.8rem;
   font-weight: 500;
   text-decoration: none;
-<<<<<<< HEAD
   background: rgba(59, 130, 246, 0.15);
   border: 1px solid rgba(59, 130, 246, 0.3);
   color: #60a5fa;
@@ -469,17 +465,6 @@
 .viewDetailsBtn:hover {
   background: rgba(59, 130, 246, 0.25);
   border-color: rgba(59, 130, 246, 0.4);
-=======
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  transition: all 0.2s ease;
-}
-
-.viewDetailsBtn:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.3);
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   color: #93c5fd;
 }
 
@@ -491,10 +476,6 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-<<<<<<< HEAD
-  border: none;
-=======
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
 
 .approveBtn {
@@ -532,7 +513,6 @@
   background: rgba(59, 130, 246, 0.12);
 }
 
-<<<<<<< HEAD
 .deleteBtn {
   display: inline-flex;
   align-items: center;
@@ -554,8 +534,6 @@
   color: #ef4444;
 }
 
-=======
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 .emptyState {
   text-align: center;
   color: #64748b;

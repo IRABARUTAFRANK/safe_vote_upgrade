@@ -63,14 +63,10 @@ export default function PendingClient({ session, organisation }: PendingClientPr
               </div>
               <h2 className={styles.title}>Registration Pending</h2>
               <p className={styles.subtitle}>
-<<<<<<< HEAD
                 {organisation 
                   ? `Thank you for registering ${organisation.name} with SafeVote!`
                   : "Thank you for registering with SafeVote!"
                 }
-=======
-                Thank you for registering <strong>{organisation?.name || "your organization"}</strong> with SafeVote!
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
               </p>
               <p className={styles.description}>
                 Your registration is currently under review. Our team will verify your organization details and approve your account within 24 hours.
@@ -131,7 +127,6 @@ export default function PendingClient({ session, organisation }: PendingClientPr
 
           <div className={styles.actions}>
             {status === "PENDING" && (
-<<<<<<< HEAD
               <>
                 {session ? (
                   <button
@@ -166,30 +161,6 @@ export default function PendingClient({ session, organisation }: PendingClientPr
                   </Link>
                 )}
               </>
-=======
-              <button
-                className={styles.checkBtn}
-                onClick={handleCheckStatus}
-                disabled={isChecking}
-              >
-                {isChecking ? (
-                  <>
-                    <svg className={styles.spinner} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                    </svg>
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                      <path d="M12 2v10l4 4"/>
-                    </svg>
-                    Check Status
-                  </>
-                )}
-              </button>
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
             )}
 
             {status === "APPROVED" && (

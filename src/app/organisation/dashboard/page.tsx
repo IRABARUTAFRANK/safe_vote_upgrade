@@ -4,11 +4,7 @@ import { db } from "@/lib/db";
 import DashboardClient from "./DashboardClient";
 
 async function getDashboardData(orgId: string) {
-<<<<<<< HEAD
   const [organisation, stats, elections, allElections] = await Promise.all([
-=======
-  const [organisation, stats] = await Promise.all([
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
     db.organisation.findUnique({
       where: { id: orgId },
       select: {
@@ -36,7 +32,6 @@ async function getDashboardData(orgId: string) {
           status: "ACTIVE",
         },
       }),
-<<<<<<< HEAD
       draftElections: await db.election.count({
         where: {
           orgId,
@@ -147,12 +142,6 @@ async function getDashboardData(orgId: string) {
       })),
     },
   };
-=======
-    },
-  ]);
-
-  return { organisation, stats };
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
 
 export default async function OrgDashboardPage() {
@@ -170,10 +159,5 @@ export default async function OrgDashboardPage() {
 
   const data = await getDashboardData(session.orgId);
 
-<<<<<<< HEAD
   return <DashboardClient session={session} data={data} elections={data.elections} />;
-=======
-  return <DashboardClient session={session} data={data} />;
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
-

@@ -50,13 +50,8 @@ export default function RegisterPage() {
 
     if (result.success) {
       setMessageType('success');
-<<<<<<< HEAD
       setMessage('Registration successful! Your organization is pending approval. Redirecting...');
       // Redirect to pending page since new orgs start as PENDING
-=======
-      setMessage('Registration successful! Redirecting...');
-      // Redirect to pending page
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
       setTimeout(() => router.push('/organisation/pending'), 2000);
     } else {
       setMessageType('error');
@@ -271,11 +266,7 @@ export default function RegisterPage() {
             <div className={styles.formFooter}>
               <p className={styles.formFooterText}>
                 Already have an account?{' '}
-<<<<<<< HEAD
                 <Link href="/organisation/login" className={styles.formFooterLink}>Sign in here</Link>
-=======
-                <Link href="/admin/login" className={styles.formFooterLink}>Sign in here</Link>
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
               </p>
             </div>
 
@@ -292,3 +283,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

@@ -11,11 +11,7 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 // Rate limit configuration
 export const RATE_LIMITS = {
-<<<<<<< HEAD
-  login: { maxAttempts: 5, windowMs: 4 * 60 * 1000 }, // 5 attempts per 4 minutes (reduced from 15)
-=======
   login: { maxAttempts: 5, windowMs: 15 * 60 * 1000 }, // 5 attempts per 15 minutes
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   registration: { maxAttempts: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
   api: { maxAttempts: 100, windowMs: 60 * 1000 }, // 100 per minute
   codeGeneration: { maxAttempts: 10, windowMs: 60 * 60 * 1000 }, // 10 per hour
@@ -160,10 +156,9 @@ export function generateCSRFToken(): string {
 }
 
 /**
- * Validate organization code format
+ * Validate organization code format (SV-XXXX pattern)
  */
 export function validateOrgCode(code: string): boolean {
-<<<<<<< HEAD
   // Format: SV-XXXX (prefix + 4 alphanumeric chars, first 2 = last 2)
   const codeRegex = /^SV-[A-Z0-9]{4}$/;
   if (!codeRegex.test(code.toUpperCase())) {
@@ -177,11 +172,6 @@ export function validateOrgCode(code: string): boolean {
     return firstTwo === lastTwo;
   }
   return false;
-=======
-  // Format: SV-XXXXXXXX (prefix + 8 alphanumeric chars)
-  const codeRegex = /^SV-[A-Z0-9]{8}$/;
-  return codeRegex.test(code.toUpperCase());
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 }
 
 /**
@@ -352,5 +342,4 @@ export function validateAndSanitizeInput(
 
   return { valid: true, sanitized };
 }
-
 

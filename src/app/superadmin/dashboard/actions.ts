@@ -2,17 +2,7 @@
 
 import { db } from "@/lib/db";
 import { requireSuperAdmin, logAdminAction, logoutSuperAdmin } from "@/lib/auth";
-<<<<<<< HEAD
 import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
-
-import { generateOrgCode } from '@/lib/orgCode';
-
-export async function approveOrganisation(orgId: string) {
-  const session = await requireSuperAdmin();
-  const headersList = await headers();
-  const ipAddress = headersList.get("x-forwarded-for") || "unknown";
-=======
 import { revalidatePath } from "next/cache";
 
 import { generateOrgCode } from '@/lib/orgCode';
@@ -25,18 +15,8 @@ import {
 
 export async function approveOrganisation(orgId: string) {
   const session = await requireSuperAdmin();
-  const ipAddress = await getClientIp();
-
-  // Validate orgId
-  const orgIdValidation = validateAndSanitizeInput(orgId, {
-    type: "text",
-    maxLength: 100,
-    required: true,
-  });
-  if (!orgIdValidation.valid) {
-    return { success: false, error: "Invalid organization ID" };
-  }
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
+  const headersList = await headers();
+  const ipAddress = headersList.get("x-forwarded-for") || "unknown";
 
   try {
     // Fetch current organisation to see if it already has a code
@@ -80,10 +60,7 @@ export async function approveOrganisation(orgId: string) {
         );
 
         revalidatePath("/superadmin/dashboard");
-<<<<<<< HEAD
-=======
         revalidatePath(`/superadmin/dashboard/org/${orgId}`);
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
         return { success: true };
       } catch (err: any) {
         if (err?.code === 'P2002' && err?.meta?.target && String(err.meta.target).includes('orgCode')) {
@@ -103,32 +80,8 @@ export async function approveOrganisation(orgId: string) {
 
 export async function generateOrgCodeForOrg(orgId: string) {
   const session = await requireSuperAdmin();
-<<<<<<< HEAD
   const headersList = await headers();
   const ipAddress = headersList.get("x-forwarded-for") || "unknown";
-=======
-  const ipAddress = await getClientIp();
-
-  // Rate limiting for code generation
-  const rateLimit = await checkRateLimit(`${session.id}:${orgId}`, "codeGeneration");
-  if (!rateLimit.allowed) {
-    await logSecurityEvent("RATE_LIMIT_EXCEEDED", `Code generation attempt for org ${orgId}`, ipAddress, session.id);
-    return {
-      success: false,
-      error: `Too many code generation attempts. Please try again later.`,
-    };
-  }
-
-  // Validate orgId
-  const orgIdValidation = validateAndSanitizeInput(orgId, {
-    type: "text",
-    maxLength: 100,
-    required: true,
-  });
-  if (!orgIdValidation.valid) {
-    return { success: false, error: "Invalid organization ID" };
-  }
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 
   try {
     const existing = await db.organisation.findUnique({ where: { id: orgId } });
@@ -154,10 +107,7 @@ export async function generateOrgCodeForOrg(orgId: string) {
         );
 
         revalidatePath("/superadmin/dashboard");
-<<<<<<< HEAD
-=======
         revalidatePath(`/superadmin/dashboard/org/${orgId}`);
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
         return { success: true, data: orgCode };
       } catch (err: any) {
         if (err?.code === 'P2002' && err?.meta?.target && String(err.meta.target).includes('orgCode')) {
@@ -177,33 +127,8 @@ export async function generateOrgCodeForOrg(orgId: string) {
 
 export async function rejectOrganisation(orgId: string, reason?: string) {
   const session = await requireSuperAdmin();
-<<<<<<< HEAD
   const headersList = await headers();
   const ipAddress = headersList.get("x-forwarded-for") || "unknown";
-=======
-  const ipAddress = await getClientIp();
-
-  // Validate orgId
-  const orgIdValidation = validateAndSanitizeInput(orgId, {
-    type: "text",
-    maxLength: 100,
-    required: true,
-  });
-  if (!orgIdValidation.valid) {
-    return { success: false, error: "Invalid organization ID" };
-  }
-
-  // Sanitize reason if provided
-  let sanitizedReason: string | undefined;
-  if (reason) {
-    const reasonValidation = validateAndSanitizeInput(reason, {
-      type: "text",
-      maxLength: 500,
-      required: false,
-    });
-    sanitizedReason = reasonValidation.sanitized;
-  }
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 
   try {
     const org = await db.organisation.update({
@@ -216,19 +141,12 @@ export async function rejectOrganisation(orgId: string, reason?: string) {
       "REJECT_ORG",
       "Organisation",
       orgId,
-<<<<<<< HEAD
       `Rejected organisation: ${org.name}. Reason: ${reason || "Not specified"}`,
-=======
-      `Rejected organisation: ${org.name}. Reason: ${sanitizedReason || "Not specified"}`,
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
       ipAddress
     );
 
     revalidatePath("/superadmin/dashboard");
-<<<<<<< HEAD
-=======
     revalidatePath(`/superadmin/dashboard/org/${orgId}`);
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
     return { success: true };
   } catch (error) {
     console.error("Reject error:", error);
@@ -266,10 +184,7 @@ export async function getOrganisationDetails(orgId: string) {
       _count: { select: { members: true, elections: true } },
       members: {
         take: 10,
-<<<<<<< HEAD
         orderBy: { fullName: "asc" },
-=======
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
         select: {
           id: true,
           fullName: true,
@@ -301,39 +216,17 @@ export async function getOrganisationDetails(orgId: string) {
 
 export async function sendOrgCodeEmail(orgId: string) {
   const session = await requireSuperAdmin();
-<<<<<<< HEAD
   const headersList = await headers();
   const ipAddress = headersList.get("x-forwarded-for") || "unknown";
-=======
-  const ipAddress = await getClientIp();
-
-  // Validate orgId
-  const orgIdValidation = validateAndSanitizeInput(orgId, {
-    type: "text",
-    maxLength: 100,
-    required: true,
-  });
-  if (!orgIdValidation.valid) {
-    return { success: false, error: "Invalid organization ID" };
-  }
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
 
   try {
     const organisation = await db.organisation.findUnique({
       where: { id: orgId },
-<<<<<<< HEAD
       select: {
         id: true,
         name: true,
         email: true,
         orgCode: true,
-=======
-      include: {
-        members: {
-          where: { role: "ORG_ADMIN" },
-          take: 1,
-        },
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
       },
     });
 
@@ -342,7 +235,6 @@ export async function sendOrgCodeEmail(orgId: string) {
     }
 
     if (!organisation.orgCode) {
-<<<<<<< HEAD
       return { success: false, error: "Organisation does not have an org code yet" };
     }
 
@@ -357,55 +249,28 @@ export async function sendOrgCodeEmail(orgId: string) {
     console.log(`[EMAIL] Would send org code ${organisation.orgCode} to ${organisation.email} for organisation ${organisation.name}`);
     
     // Log the action
-=======
-      return { success: false, error: "Organisation code not generated yet" };
-    }
-
-    // In a real application, you would use an email service like SendGrid, Resend, etc.
-    // For now, we'll log it and return success
-    console.log(`Email would be sent to ${organisation.email} with org code: ${organisation.orgCode}`);
-    
-    // TODO: Implement actual email sending
-    // Example with a service like Resend:
-    // await resend.emails.send({
-    //   from: 'SafeVote <noreply@safevote.com>',
-    //   to: organisation.email,
-    //   subject: 'Your SafeVote Organization Code',
-    //   html: `Your organization code is: <strong>${organisation.orgCode}</strong>`
-    // });
-
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
     await logAdminAction(
       session.id,
       "SEND_ORG_CODE_EMAIL",
       "Organisation",
       orgId,
-<<<<<<< HEAD
       `Sent org code email to ${organisation.email} for: ${organisation.name}`,
-=======
-      `Sent organization code via email to: ${organisation.email}`,
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
       ipAddress
     );
 
     revalidatePath("/superadmin/dashboard");
     revalidatePath(`/superadmin/dashboard/org/${orgId}`);
-<<<<<<< HEAD
 
     // Return success (email functionality can be added later)
     return { 
       success: true, 
       message: `Organization code would be sent to ${organisation.email}. Email functionality needs to be configured.` 
     };
-=======
-    return { success: true };
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   } catch (error) {
     console.error("Send email error:", error);
     return { success: false, error: "Failed to send email" };
   }
 }
-<<<<<<< HEAD
 
 export async function deleteOrganisation(orgId: string) {
   const session = await requireSuperAdmin();
@@ -524,5 +389,4 @@ export async function deleteOrganisation(orgId: string) {
     return { success: false, error: "Failed to delete organisation" };
   }
 }
-=======
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
+

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 
-<<<<<<< HEAD
 type ThemeMode = 'light' | 'dark' | 'system';
 type AccentColor = 'emerald' | 'blue' | 'purple' | 'rose' | 'amber' | 'cyan';
 
@@ -61,40 +60,7 @@ export default function ThemeToggle() {
     return () => { if (m && m.removeEventListener) m.removeEventListener('change', handler); };
   }, []);
 
-=======
-export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light'|'dark'|'system'>('system');
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  function applyTheme(mode: 'light'|'dark'|'system'){
-    if (typeof document === 'undefined') return;
-    if (mode === 'dark') {
-      document.documentElement.setAttribute('data-theme','dark');
-    } else if (mode === 'light'){
-      document.documentElement.removeAttribute('data-theme');
-    } else {
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) document.documentElement.setAttribute('data-theme','dark'); else document.documentElement.removeAttribute('data-theme');
-    }
-    try { localStorage.setItem('sv-theme', mode); } catch(e){}
-  }
-
-  useEffect(()=>{
-    if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem('sv-theme') as ('light'|'dark'|'system') | null;
-    const initial = saved || 'system';
-    setTheme(initial);
-    applyTheme(initial);
-
-    const m = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => { if (initial === 'system') applyTheme('system'); };
-    if (m && m.addEventListener) m.addEventListener('change', handler);
-    return () => { if (m && m.removeEventListener) m.removeEventListener('change', handler); };
-  },[]);
-
   // Close dropdown when clicking outside
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -105,7 +71,6 @@ export default function ThemeToggle() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-<<<<<<< HEAD
   const handleThemeSelect = (mode: ThemeMode) => {
     setTheme(mode);
     applyTheme(mode);
@@ -114,12 +79,6 @@ export default function ThemeToggle() {
   const handleAccentSelect = (accentId: AccentColor) => {
     setAccent(accentId);
     applyAccent(accentId);
-=======
-  const handleSelect = (mode: 'light'|'dark'|'system') => {
-    setTheme(mode);
-    applyTheme(mode);
-    setIsOpen(false);
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   };
 
   const getIcon = () => {
@@ -150,11 +109,8 @@ export default function ThemeToggle() {
     );
   };
 
-<<<<<<< HEAD
   const currentAccent = accentColors.find(a => a.id === accent);
 
-=======
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
   return (
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       <button
@@ -167,13 +123,8 @@ export default function ThemeToggle() {
           gap: '6px',
           padding: '8px 12px',
           borderRadius: '50px',
-<<<<<<< HEAD
           border: `1px solid ${currentAccent?.color}33`,
           background: `${currentAccent?.color}0d`,
-=======
-          border: '1px solid rgba(16, 185, 129, 0.2)',
-          background: 'rgba(16, 185, 129, 0.05)',
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
           cursor: 'pointer',
           color: 'var(--text, #0f172a)',
           fontSize: '14px',
@@ -182,7 +133,6 @@ export default function ThemeToggle() {
         }}
       >
         {getIcon()}
-<<<<<<< HEAD
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           Theme
           <span
@@ -194,9 +144,6 @@ export default function ThemeToggle() {
             }}
           />
         </span>
-=======
-        <span>Theme</span>
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
         <svg 
           width="12" 
           height="12" 
@@ -221,19 +168,11 @@ export default function ThemeToggle() {
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
-<<<<<<< HEAD
             minWidth: '220px',
             background: 'var(--card-bg, #fff)',
             borderRadius: '12px',
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
             border: '1px solid var(--border-color, #e2e8f0)',
-=======
-            minWidth: '160px',
-            background: 'var(--bg, #fff)',
-            borderRadius: '12px',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
-            border: '1px solid rgba(16, 185, 129, 0.1)',
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
             overflow: 'hidden',
             zIndex: 1000,
             animation: 'dropdownFade 0.2s ease',
@@ -245,7 +184,6 @@ export default function ThemeToggle() {
               to { opacity: 1; transform: translateY(0); }
             }
           `}</style>
-<<<<<<< HEAD
 
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
@@ -371,114 +309,8 @@ export default function ThemeToggle() {
               </p>
             </div>
           )}
-=======
-          
-          <button
-            onClick={() => handleSelect('light')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '12px 16px',
-              border: 'none',
-              background: theme === 'light' ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-              cursor: 'pointer',
-              color: 'var(--text, #0f172a)',
-              fontSize: '14px',
-              textAlign: 'left',
-              transition: 'background 0.15s ease',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(16, 185, 129, 0.1)' : 'transparent'}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="5"/>
-              <line x1="12" y1="1" x2="12" y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/>
-              <line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-            </svg>
-            <span>Light</span>
-            {theme === 'light' && (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            )}
-          </button>
-
-          <button
-            onClick={() => handleSelect('dark')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '12px 16px',
-              border: 'none',
-              background: theme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-              cursor: 'pointer',
-              color: 'var(--text, #0f172a)',
-              fontSize: '14px',
-              textAlign: 'left',
-              transition: 'background 0.15s ease',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = theme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : 'transparent'}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-            <span>Dark</span>
-            {theme === 'dark' && (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            )}
-          </button>
-
-          <button
-            onClick={() => handleSelect('system')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '12px 16px',
-              border: 'none',
-              background: theme === 'system' ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-              cursor: 'pointer',
-              color: 'var(--text, #0f172a)',
-              fontSize: '14px',
-              textAlign: 'left',
-              transition: 'background 0.15s ease',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = theme === 'system' ? 'rgba(16, 185, 129, 0.1)' : 'transparent'}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-            <span>System</span>
-            {theme === 'system' && (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto' }}>
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            )}
-          </button>
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
         </div>
       )}
     </div>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 6c7180de8b91f8b1e67e5630306b7f3e7c27ebf7
