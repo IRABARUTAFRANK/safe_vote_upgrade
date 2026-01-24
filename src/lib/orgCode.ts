@@ -55,3 +55,38 @@ export function extractOrgIdentity(orgCode: string): string {
   return identity;
 }
 
+/**
+ * Generate multiple unique member codes
+ * Returns an array of unique codes
+ */
+export function generateMemberCodes(orgCode: string, count: number): string[] {
+  const codes: string[] = [];
+  const existingCodes = new Set<string>();
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  
+  // Extract org identity from orgCode
+  const orgIdentity = extractOrgIdentity(orgCode);
+  
+  // Generate unique codes
+  let attempts = 0;
+  const maxAttempts = count * 10; // Prevent infinite loop
+  
+  while (codes.length < count && attempts < maxAttempts) {
+    let memberId = '';
+    for (let i = 0; i < 3; i++) {
+      memberId += chars[Math.floor(Math.random() * chars.length)];
+    }
+    
+    const code = `${orgIdentity}${memberId}`;
+    
+    if (!existingCodes.has(code) && !codes.includes(code)) {
+      existingCodes.add(code);
+      codes.push(code);
+    }
+    
+    attempts++;
+  }
+  
+  return codes;
+}
+
