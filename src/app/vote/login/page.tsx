@@ -2,9 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { login } from './actions';
 import styles from '../../styles/auth.module.css';
 
 export default function VoteLoginPage() {
+  const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,12 +27,32 @@ export default function VoteLoginPage() {
     }
 
     setIsLoading(true);
-    // Placeholder: replace with actual auth
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setMessage('Login successful! Redirecting to your ballot...');
-    setMessageType('success');
-    setIsLoading(false);
-    console.log({ identifier, rememberMe });
+
+    try {
+      const formData = new FormData();
+      formData.append('memberCode', identifier);
+      formData.append('password', password);
+
+      const result = await login(formData);
+
+      if (result.success) {
+        setMessage('Login successful! Redirecting to your dashboard...');
+        setMessageType('success');
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          router.push('/vote/dashboard');
+        }, 1000);
+      } else {
+        setMessage(result.error || 'Login failed. Please try again.');
+        setMessageType('error');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setMessage('An unexpected error occurred. Please try again.');
+      setMessageType('error');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
