@@ -21,7 +21,7 @@ export default function VoteLoginPage() {
     setMessage('');
 
     if (!identifier || !password) {
-      setMessage('Please provide your email or voter ID and password.');
+      setMessage('Please provide your voter ID and password.');
       setMessageType('error');
       return;
     }
