@@ -487,6 +487,17 @@
   border-color: rgba(5, 150, 105, 0.3);
 }
 
+.messageInfo {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+:root[data-theme='dark'] .messageInfo {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
 /* Form Footer Links */
 .formFooter {
   margin-top: 1.5rem;

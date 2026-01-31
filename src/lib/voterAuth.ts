@@ -1,3 +1,5 @@
+"use server";
+
 import { cookies } from "next/headers";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
@@ -13,6 +15,15 @@ function generateSessionToken(): string {
   return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * CENTRALIZED code normalization - use this everywhere!
+ * Removes all whitespace, converts to uppercase, and trims
+ */
+export function normalizeCode(code: string): string {
+  if (!code || typeof code !== 'string') return '';
+  return code.replace(/\s+/g, '').toUpperCase().trim();
+}
+
 export interface VoterSession {
   memberId: string;
   orgId: string;
@@ -25,19 +36,23 @@ export interface VoterSession {
   createdAt: Date;
 }
 
-// Step 1: Validate member code and check if account exists
-export async function validateMemberCode(
-  memberCode: string
-): Promise<{ 
-  success: boolean; 
-  error?: string; 
+export interface CodeValidationResult {
+  success: boolean;
+  error?: string;
   memberCode?: string;
   orgId?: string;
-  hasAccount?: boolean;
+  hasAccount: boolean;
   memberId?: string;
   fullName?: string;
   email?: string | null;
-}> {
+  electionTitle?: string;
+  orgName?: string;
+}
+
+// Step 1: Validate member code and check if account exists
+export async function validateMemberCode(
+  memberCode: string
+): Promise<CodeValidationResult> {
   try {
     const ipAddress = await getClientIp();
     
@@ -47,33 +62,42 @@ export async function validateMemberCode(
       await logSecurityEvent("RATE_LIMIT_EXCEEDED", `Member code validation attempt from ${ipAddress}`, ipAddress);
       return {
         success: false,
+        hasAccount: false,
         error: `Too many attempts. Please try again in ${Math.ceil((rateLimit.resetTime - Date.now()) / 60000)} minutes.`,
       };
     }
 
-    // Validate and sanitize member code
-    const codeValidation = validateAndSanitizeInput(memberCode, {
-      type: "text",
-      maxLength: 10,
-      required: true,
-    });
-    if (!codeValidation.valid) {
-      return { success: false, error: "Invalid member code format" };
+    // Basic validation
+    if (!memberCode || memberCode.trim().length === 0) {
+      return { success: false, hasAccount: false, error: "Please enter your voter code" };
     }
 
-    // Remove spaces and convert to uppercase
-    const sanitizedCode = memberCode.replace(/\s+/g, '').toUpperCase().trim();
+    // CRITICAL: Use centralized normalization
+    const sanitizedCode = normalizeCode(memberCode);
 
-    // FIRST: Check if member account already exists (regardless of VoterCode status)
-    // This allows existing members to login even if their VoterCode is USED
+    if (sanitizedCode.length < 3 || sanitizedCode.length > 10) {
+      return { success: false, hasAccount: false, error: "Invalid voter code format" };
+    }
+
+    // FIRST: Check if member account already exists
     const member = await db.member.findUnique({
       where: { memberCode: sanitizedCode },
       include: {
         organisation: true,
+        election: true,
       },
     });
 
     if (member) {
+      // Check if organization is approved
+      if (member.organisation.status !== "APPROVED") {
+        return { 
+          success: false, 
+          hasAccount: false, 
+          error: "Your organization is not yet approved. Please contact your administrator." 
+        };
+      }
+
       // Member exists - allow login
       return {
         success: true,
@@ -83,15 +107,17 @@ export async function validateMemberCode(
         memberId: member.id,
         fullName: member.fullName,
         email: member.email,
+        orgName: member.organisation.name,
+        electionTitle: member.election?.title,
       };
     }
 
     // SECOND: Check if code exists as VoterCode (for new account creation)
-    // Check both UNUSED and USED statuses to be more flexible
+    // Only accept UNUSED codes for new account creation
     const voterCode = await db.voterCode.findFirst({
       where: {
         code: sanitizedCode,
-        status: { in: ["UNUSED", "USED"] }, // Allow both unused and used codes
+        status: "UNUSED",
       },
       include: {
         election: {
@@ -99,153 +125,72 @@ export async function validateMemberCode(
             organisation: true,
           },
         },
+        organisation: true,
       },
     });
 
     if (voterCode) {
-      // Code is valid (from election) but no member account exists - allow account creation
+      // Check if organization is approved
+      if (voterCode.organisation.status !== "APPROVED") {
+        return { 
+          success: false, 
+          hasAccount: false, 
+          error: "Your organization is not yet approved. Please contact your administrator." 
+        };
+      }
+
+      // Check if election is valid
+      if (!voterCode.election) {
+        return { 
+          success: false, 
+          hasAccount: false, 
+          error: "This voter code is not associated with any election." 
+        };
+      }
+
+      // Code is valid and UNUSED - allow account creation
       return {
         success: true,
         memberCode: sanitizedCode,
         orgId: voterCode.orgId,
         hasAccount: false,
-        fullName: "", // Will be set during account creation
+        fullName: "",
         email: null,
+        orgName: voterCode.organisation.name,
+        electionTitle: voterCode.election.title,
       };
     }
 
-    // Code not found
-    await logSecurityEvent("INVALID_MEMBER_CODE", `Invalid member code attempt: ${sanitizedCode}`, ipAddress);
-    return { success: false, error: "Invalid member code. Please check and try again." };
-  } catch (error) {
-    console.error("Validate member code error:", error);
-    return { success: false, error: "An error occurred while validating your code" };
-  }
-}
-
-// Step 2: Create voter account (if no account exists)
-export async function createVoterAccount(
-  memberCode: string,
-  fullName: string,
-  email: string | null,
-  password: string
-): Promise<{ success: boolean; error?: string; memberId?: string }> {
-  try {
-    const ipAddress = await getClientIp();
-
-    // Rate limiting
-    const rateLimit = await checkRateLimit(`${ipAddress}:account_creation`, "registration");
-    if (!rateLimit.allowed) {
-      await logSecurityEvent("RATE_LIMIT_EXCEEDED", `Voter account creation attempt from ${ipAddress}`, ipAddress);
-      return {
-        success: false,
-        error: `Too many attempts. Please try again later.`,
-      };
-    }
-
-    // Validate inputs
-    const codeValidation = validateAndSanitizeInput(memberCode, {
-      type: "text",
-      maxLength: 10,
-      required: true,
-    });
-    if (!codeValidation.valid) {
-      return { success: false, error: "Invalid member code" };
-    }
-
-    const nameValidation = validateAndSanitizeInput(fullName, {
-      type: "name",
-      required: true,
-    });
-    if (!nameValidation.valid) {
-      return { success: false, error: nameValidation.error || "Invalid name" };
-    }
-
-    let emailValidation: { valid: boolean; sanitized?: string; error?: string } = { valid: true };
-    if (email) {
-      emailValidation = validateAndSanitizeInput(email, {
-        type: "email",
-        required: false,
-      });
-      if (!emailValidation.valid) {
-        return { success: false, error: emailValidation.error || "Invalid email format" };
-      }
-    }
-
-    // Validate password strength
-    const passwordValidation = validatePasswordStrength(password);
-    if (!passwordValidation.valid) {
-      return { success: false, error: passwordValidation.errors?.[0] || "Password does not meet requirements" };
-    }
-
-    const sanitizedCode = codeValidation.sanitized!.toUpperCase().trim();
-
-    // Verify code is valid and unused
-    const voterCode = await db.voterCode.findFirst({
+    // Check if code exists but is USED (different error message)
+    const usedCode = await db.voterCode.findFirst({
       where: {
         code: sanitizedCode,
-        status: "UNUSED",
-      },
-      include: {
-        election: true,
-        organisation: true,
-      },
-    });
-
-    if (!voterCode) {
-      return { success: false, error: "Invalid or already used member code" };
-    }
-
-    // Check if member already exists
-    const existingMember = await db.member.findUnique({
-      where: { memberCode: sanitizedCode },
-    });
-
-    if (existingMember) {
-      return { success: false, error: "Account already exists for this code. Please login instead." };
-    }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Create member account - link to the specific election this code belongs to
-    const member = await db.member.create({
-      data: {
-        orgId: voterCode.orgId,
-        electionId: voterCode.electionId, // Link member to the specific election
-        memberCode: sanitizedCode,
-        fullName: nameValidation.sanitized!,
-        email: emailValidation.sanitized || null,
-        passwordHash,
-        role: "VOTER",
-        isActive: true,
-      },
-    });
-
-    // Mark voter code as used (but don't link to ballot yet - that happens when voting)
-    await db.voterCode.update({
-      where: { id: voterCode.id },
-      data: {
         status: "USED",
-        usedAt: new Date(),
-        usedByIp: ipAddress,
       },
     });
 
-    await logSecurityEvent("VOTER_ACCOUNT_CREATED", `Voter account created for code: ${sanitizedCode}`, ipAddress, member.id);
-
-    return { success: true, memberId: member.id };
-  } catch (error: any) {
-    console.error("Create voter account error:", error);
-    if (error?.code === 'P2002') {
-      return { success: false, error: "Account already exists for this code" };
+    if (usedCode) {
+      // Code is used but no member found - data inconsistency
+      // Provide helpful error message
+      await logSecurityEvent("USED_CODE_NO_MEMBER", `Used code without member: ${sanitizedCode}`, ipAddress);
+      return { 
+        success: false, 
+        hasAccount: false, 
+        error: "This code has already been used. If you believe this is an error, please contact your organization administrator." 
+      };
     }
-    return { success: false, error: "Failed to create account. Please try again." };
+
+    // Code not found at all
+    await logSecurityEvent("INVALID_MEMBER_CODE", `Invalid member code attempt: ${sanitizedCode}`, ipAddress);
+    return { success: false, hasAccount: false, error: "Invalid voter code. Please check and try again." };
+  } catch (error) {
+    console.error("Validate member code error:", error);
+    return { success: false, hasAccount: false, error: "An error occurred while validating your code" };
   }
 }
 
-// Step 3: Login with member code and password (auto-create account if valid code)
-export async function loginVoter(
+// Step 2a: Login with existing account
+export async function loginWithPassword(
   memberCode: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
@@ -262,17 +207,12 @@ export async function loginVoter(
       };
     }
 
-    // Validate inputs
-    const codeValidation = validateAndSanitizeInput(memberCode, {
-      type: "text",
-      maxLength: 10,
-      required: true,
-    });
-    if (!codeValidation.valid) {
-      return { success: false, error: "Invalid member code" };
+    if (!memberCode || !password) {
+      return { success: false, error: "Voter code and password are required" };
     }
 
-    const sanitizedCode = codeValidation.sanitized!.toUpperCase().trim();
+    // CRITICAL: Use centralized normalization
+    const sanitizedCode = normalizeCode(memberCode);
 
     // Find member
     const member = await db.member.findUnique({
@@ -282,63 +222,105 @@ export async function loginVoter(
       },
     });
 
-    if (member) {
-      // Member exists - verify password
-      if (!member.passwordHash) {
-        return { success: false, error: "Password not set. Please create your account first." };
-      }
-
-      // Verify password
-      const isValid = await bcrypt.compare(password, member.passwordHash);
-
-      if (!isValid) {
-        await logSecurityEvent("VOTER_LOGIN_FAILED", `Failed password attempt for member: ${member.id}`, ipAddress, member.id);
-        return { success: false, error: "Invalid member code or password" };
-      }
-
-      // Check organization status
-      if (member.organisation.status === "REJECTED") {
-        return { success: false, error: "Your organization has been rejected" };
-      }
-
-      // Generate session token
-      const sessionToken = generateSessionToken();
-
-      // Set session cookie
-      const cookieStore = await cookies();
-      cookieStore.set(VOTER_SESSION_COOKIE, `${member.id}:${sessionToken}`, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: SESSION_DURATION / 1000,
-      });
-
-      await logSecurityEvent("VOTER_LOGIN_SUCCESS", `Voter logged in: ${member.memberCode}`, ipAddress, member.id);
-
-      return { success: true };
+    if (!member) {
+      await logSecurityEvent("VOTER_LOGIN_FAILED", `No member found for code: ${sanitizedCode}`, ipAddress);
+      return { success: false, error: "Invalid voter code or password" };
     }
 
-    // Member doesn't exist - check if code is valid for account creation
-    const voterCode = await db.voterCode.findFirst({
-      where: {
-        code: sanitizedCode,
-        status: "UNUSED",
-      },
-      include: {
-        election: true,
-        organisation: true,
-      },
-    });
+    // Check if password is set
+    if (!member.passwordHash) {
+      return { success: false, error: "Password not set. Please create your account first." };
+    }
 
-    if (!voterCode) {
-      await logSecurityEvent("VOTER_LOGIN_FAILED", `Invalid member code login attempt: ${sanitizedCode}`, ipAddress);
-      return { success: false, error: "Invalid member code. Please check and try again." };
+    // Verify password
+    const isValid = await bcrypt.compare(password, member.passwordHash);
+
+    if (!isValid) {
+      await logSecurityEvent("VOTER_LOGIN_FAILED", `Failed password attempt for member: ${member.id}`, ipAddress, member.id);
+      return { success: false, error: "Invalid voter code or password" };
     }
 
     // Check organization status
-    if (voterCode.organisation.status === "REJECTED") {
-      return { success: false, error: "Your organization has been rejected" };
+    if (member.organisation.status !== "APPROVED") {
+      return { success: false, error: "Your organization is not yet approved" };
+    }
+
+    // Check if account is active
+    if (!member.isActive) {
+      return { success: false, error: "Your account has been deactivated. Please contact your administrator." };
+    }
+
+    // Generate session token
+    const sessionToken = generateSessionToken();
+
+    // Set session cookie
+    const cookieStore = await cookies();
+    cookieStore.set(VOTER_SESSION_COOKIE, `${member.id}:${sessionToken}`, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_DURATION / 1000,
+    });
+
+    await logSecurityEvent("VOTER_LOGIN_SUCCESS", `Voter logged in: ${member.memberCode}`, ipAddress, member.id);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Voter login error:", error);
+    return { success: false, error: "An error occurred during login" };
+  }
+}
+
+// Step 2b: Create voter account (if no account exists)
+export async function createVoterAccount(
+  memberCode: string,
+  fullName: string,
+  email: string | null,
+  password: string,
+  confirmPassword: string
+): Promise<{ success: boolean; error?: string; memberId?: string }> {
+  try {
+    const ipAddress = await getClientIp();
+
+    // Rate limiting
+    const rateLimit = await checkRateLimit(`${ipAddress}:account_creation`, "registration");
+    if (!rateLimit.allowed) {
+      await logSecurityEvent("RATE_LIMIT_EXCEEDED", `Voter account creation attempt from ${ipAddress}`, ipAddress);
+      return {
+        success: false,
+        error: `Too many attempts. Please try again later.`,
+      };
+    }
+
+    // Validate inputs
+    if (!memberCode || !fullName || !password || !confirmPassword) {
+      return { success: false, error: "All fields are required" };
+    }
+
+    // Password confirmation check
+    if (password !== confirmPassword) {
+      return { success: false, error: "Passwords do not match" };
+    }
+
+    const nameValidation = validateAndSanitizeInput(fullName, {
+      type: "name",
+      required: true,
+    });
+    if (!nameValidation.valid) {
+      return { success: false, error: nameValidation.error || "Invalid name" };
+    }
+
+    let sanitizedEmail: string | null = null;
+    if (email && email.trim()) {
+      const emailValidation = validateAndSanitizeInput(email, {
+        type: "email",
+        required: false,
+      });
+      if (!emailValidation.valid) {
+        return { success: false, error: emailValidation.error || "Invalid email format" };
+      }
+      sanitizedEmail = emailValidation.sanitized || null;
     }
 
     // Validate password strength
@@ -347,38 +329,77 @@ export async function loginVoter(
       return { success: false, error: passwordValidation.errors?.[0] || "Password does not meet requirements" };
     }
 
-    // Auto-create account with minimal information
-    const passwordHash = await bcrypt.hash(password, 10);
+    // CRITICAL: Use centralized normalization
+    const sanitizedCode = normalizeCode(memberCode);
 
-    const newMember = await db.member.create({
-      data: {
-        orgId: voterCode.orgId,
-        electionId: voterCode.electionId,
-        memberCode: sanitizedCode,
-        fullName: `Voter ${sanitizedCode}`, // Default name, can be updated later
-        email: null,
-        passwordHash,
-        role: "VOTER",
-        isActive: true,
-      },
+    // Use a transaction to ensure atomicity
+    const result = await db.$transaction(async (tx) => {
+      // Check if member already exists (inside transaction for consistency)
+      const existingMember = await tx.member.findUnique({
+        where: { memberCode: sanitizedCode },
+      });
+
+      if (existingMember) {
+        throw new Error("ACCOUNT_EXISTS");
+      }
+
+      // Verify code is valid and UNUSED
+      const voterCode = await tx.voterCode.findFirst({
+        where: {
+          code: sanitizedCode,
+          status: "UNUSED",
+        },
+        include: {
+          election: true,
+          organisation: true,
+        },
+      });
+
+      if (!voterCode) {
+        throw new Error("INVALID_CODE");
+      }
+
+      // Check organization status
+      if (voterCode.organisation.status !== "APPROVED") {
+        throw new Error("ORG_NOT_APPROVED");
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Create member account - link to the specific election this code belongs to
+      const member = await tx.member.create({
+        data: {
+          orgId: voterCode.orgId,
+          electionId: voterCode.electionId,
+          memberCode: sanitizedCode, // Store normalized code
+          fullName: nameValidation.sanitized!,
+          email: sanitizedEmail,
+          passwordHash,
+          role: "VOTER",
+          isActive: true,
+        },
+      });
+
+      // Mark voter code as used
+      await tx.voterCode.update({
+        where: { id: voterCode.id },
+        data: {
+          status: "USED",
+          usedAt: new Date(),
+          usedByIp: ipAddress,
+        },
+      });
+
+      return member;
     });
 
-    // Mark voter code as used
-    await db.voterCode.update({
-      where: { id: voterCode.id },
-      data: {
-        status: "USED",
-        usedAt: new Date(),
-        usedByIp: ipAddress,
-      },
-    });
+    await logSecurityEvent("VOTER_ACCOUNT_CREATED", `Voter account created for code: ${sanitizedCode}`, ipAddress, result.id);
 
-    // Generate session token
+    // Auto-login after account creation
     const sessionToken = generateSessionToken();
-
-    // Set session cookie
     const cookieStore = await cookies();
-    cookieStore.set(VOTER_SESSION_COOKIE, `${newMember.id}:${sessionToken}`, {
+    cookieStore.set(VOTER_SESSION_COOKIE, `${result.id}:${sessionToken}`, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -386,16 +407,38 @@ export async function loginVoter(
       maxAge: SESSION_DURATION / 1000,
     });
 
-    await logSecurityEvent("VOTER_ACCOUNT_AUTO_CREATED", `Voter account auto-created and logged in: ${sanitizedCode}`, ipAddress, newMember.id);
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("Voter login error:", error);
-    if (error?.code === 'P2002') {
+    return { success: true, memberId: result.id };
+  } catch (error: unknown) {
+    console.error("Create voter account error:", error);
+    
+    if (error instanceof Error) {
+      if (error.message === "ACCOUNT_EXISTS") {
+        return { success: false, error: "Account already exists for this code. Please login instead." };
+      }
+      if (error.message === "INVALID_CODE") {
+        return { success: false, error: "Invalid or already used voter code" };
+      }
+      if (error.message === "ORG_NOT_APPROVED") {
+        return { success: false, error: "Your organization is not yet approved" };
+      }
+    }
+    
+    // Handle Prisma unique constraint error
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
       return { success: false, error: "Account already exists for this code" };
     }
-    return { success: false, error: "An error occurred during login" };
+    
+    return { success: false, error: "Failed to create account. Please try again." };
   }
+}
+
+// Legacy function for backwards compatibility - now delegates to proper functions
+export async function loginVoter(
+  memberCode: string,
+  password: string
+): Promise<{ success: boolean; error?: string }> {
+  // Simply delegate to loginWithPassword
+  return loginWithPassword(memberCode, password);
 }
 
 // Get current voter session
@@ -466,7 +509,8 @@ export async function getVoterAccountStatus(): Promise<{
 
   try {
     const now = new Date();
-    const normalizedMemberCode = session.memberCode.replace(/\s+/g, '').toUpperCase().trim();
+    // Use centralized normalization
+    const normalizedMemberCode = normalizeCode(session.memberCode);
     
     // Find all elections the member has access to
     const accessibleElectionIds = new Set<string>();
@@ -554,4 +598,3 @@ export async function requireVoter(): Promise<VoterSession> {
   
   return session;
 }
-
