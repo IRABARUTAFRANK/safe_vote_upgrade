@@ -182,6 +182,7 @@ export default function VotersClient({ session, data }: VotersClientProps) {
               Back to Dashboard
             </Link>
           </div>
+        </div>
       </header>
 
       <div className={styles.content}>
