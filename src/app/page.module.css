@@ -33,12 +33,6 @@ he t/* Modern SafeVote Landing Page Styles */
 }
 
 .brand {
-.brand {
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.brandLink {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -47,12 +41,19 @@ he t/* Modern SafeVote Landing Page Styles */
   transition: opacity 0.2s ease;
 }
 
-.brandLink:hover {
+.brand:hover {
   opacity: 0.9;
 }
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+
+.brandLogo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.brand:hover .brandLogo {
+  transform: scale(1.05);
 }
 
 .brandMark {

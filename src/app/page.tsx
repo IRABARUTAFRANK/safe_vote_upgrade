@@ -24,15 +24,16 @@ export default function HomePage() {
     <div className={styles.container}>
       {/* --- NAV --- */}
       <nav className={styles.nav}>
-        <div className={styles.brand}>
-          <div className={styles.brandMark}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 12l2 2 4-4"/>
-              <path d="M12 3c-1.2 0-2.4.6-3 1.7A3.6 3.6 0 0 0 4.6 9c-1 .6-1.7 1.8-1.7 3s.7 2.4 1.7 3c-.3 1.5.2 3 1.5 3.8a3.6 3.6 0 0 0 4.9 1.5c.6 1.1 1.8 1.7 3 1.7s2.4-.6 3-1.7a3.6 3.6 0 0 0 4.4-4.3c1-.6 1.7-1.8 1.7-3s-.7-2.4-1.7-3c.3-1.5-.2-3-1.5-3.8a3.6 3.6 0 0 0-4.9-1.5A3.6 3.6 0 0 0 12 3z"/>
-            </svg>
-          </div>
+        <Link href="/" className={styles.brand}>
+          <img 
+            src="/favicon.svg" 
+            alt="SafeVote Logo" 
+            width={32} 
+            height={32} 
+            className={styles.brandLogo}
+          />
           <div className={styles.title}>SafeVote</div>
-        </div>
+        </Link>
 
         <div className={styles.navLinks}>
           <Link href="#features">Features</Link>

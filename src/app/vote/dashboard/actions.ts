@@ -554,6 +554,11 @@ export async function getElectionsForApplication() {
             applicationStartDate: { lte: now },
             applicationEndDate: null,
           },
+          // Case 4: No dates set at all - applications are always open for DRAFT/ACTIVE
+          {
+            applicationStartDate: null,
+            applicationEndDate: null,
+          },
         ],
       },
       include: {

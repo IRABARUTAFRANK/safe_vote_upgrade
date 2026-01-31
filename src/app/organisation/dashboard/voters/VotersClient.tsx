@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../dashboard.module.css";
 
@@ -57,10 +58,29 @@ interface VotersClientProps {
 }
 
 export default function VotersClient({ session, data }: VotersClientProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState<"members" | "codes">("members");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterElection, setFilterElection] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      startTransition(() => {
+        router.refresh();
+      });
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [router]);
+
+  function handleRefresh() {
+    startTransition(() => {
+      router.refresh();
+    });
+  }
 
   const filteredMembers = data.members.filter((member) => {
     if (!searchTerm) return true;
@@ -112,23 +132,56 @@ export default function VotersClient({ session, data }: VotersClientProps) {
             <h1 className={styles.pageTitle}>Manage Voters</h1>
             <p className={styles.pageSubtitle}>{session.orgName}</p>
           </div>
-          <Link href="/organisation/dashboard" className={styles.logoutBtn}>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <button 
+              onClick={handleRefresh} 
+              disabled={isPending}
+              title="Refresh data"
+              style={{
+                padding: "0.5rem 1rem",
+                borderRadius: "8px",
+                border: "1px solid var(--border-color, #e2e8f0)",
+                backgroundColor: "transparent",
+                color: "inherit",
+                cursor: isPending ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                opacity: isPending ? 0.6 : 1,
+              }}
             >
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            Back to Dashboard
-          </Link>
-        </div>
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+                style={{ animation: isPending ? "spin 1s linear infinite" : "none" }}
+              >
+                <path d="M23 4v6h-6" />
+                <path d="M1 20v-6h6" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+              {isPending ? "Refreshing..." : "Refresh"}
+            </button>
+            <Link href="/organisation/dashboard" className={styles.logoutBtn}>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              Back to Dashboard
+            </Link>
+          </div>
       </header>
 
       <div className={styles.content}>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./dashboard.module.css";
@@ -62,10 +62,31 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ session, data, elections }: DashboardClientProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      startTransition(() => {
+        router.refresh();
+        setLastRefresh(new Date());
+      });
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [router]);
 
   async function handleLogout() {
     await logoutOrgAdminAction();
     router.push("/organisation/login");
+  }
+
+  function handleRefresh() {
+    startTransition(() => {
+      router.refresh();
+      setLastRefresh(new Date());
+    });
   }
 
   const formatDate = (date: string | Date) => {
@@ -86,6 +107,39 @@ export default function DashboardClient({ session, data, elections }: DashboardC
             <p className={styles.pageSubtitle}>Welcome back, {session.fullName}</p>
           </div>
           <div className={styles.headerActions}>
+            <button 
+              onClick={handleRefresh} 
+              disabled={isPending}
+              className={styles.refreshBtn}
+              title="Refresh data"
+              style={{
+                padding: "0.5rem 1rem",
+                borderRadius: "8px",
+                border: "1px solid var(--border-color, #e2e8f0)",
+                backgroundColor: "transparent",
+                color: "inherit",
+                cursor: isPending ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                opacity: isPending ? 0.6 : 1,
+              }}
+            >
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+                style={{ animation: isPending ? "spin 1s linear infinite" : "none" }}
+              >
+                <path d="M23 4v6h-6" />
+                <path d="M1 20v-6h6" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+              {isPending ? "Refreshing..." : "Refresh"}
+            </button>
             <ThemeToggle />
             <button className={styles.logoutBtn} onClick={handleLogout}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -230,7 +284,7 @@ export default function DashboardClient({ session, data, elections }: DashboardC
               </svg>
               <span>Create Election</span>
             </Link>
-            <button className={styles.actionBtn} disabled>
+            <Link href="/organisation/dashboard/voters" className={styles.actionBtn}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
@@ -238,9 +292,8 @@ export default function DashboardClient({ session, data, elections }: DashboardC
                 <line x1="22" y1="11" x2="16" y2="11"/>
               </svg>
               <span>Manage Members</span>
-              <span className={styles.comingSoon}>Coming Soon</span>
-            </button>
-            <button className={styles.actionBtn} disabled>
+            </Link>
+            <Link href="/organisation/dashboard/reports" className={styles.actionBtn}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
@@ -248,8 +301,7 @@ export default function DashboardClient({ session, data, elections }: DashboardC
                 <line x1="16" y1="17" x2="8" y2="17"/>
               </svg>
               <span>View Reports</span>
-              <span className={styles.comingSoon}>Coming Soon</span>
-            </button>
+            </Link>
           </div>
         </div>
 
