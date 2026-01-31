@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
 import { checkRateLimit, logSecurityEvent, getClientIp, validateAndSanitizeInput, validatePasswordStrength } from "./security";
+import { normalizeCode } from "./codeUtils";
 
 const VOTER_SESSION_COOKIE = "voter_session";
 const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
@@ -13,15 +14,6 @@ function generateSessionToken(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-/**
- * CENTRALIZED code normalization - use this everywhere!
- * Removes all whitespace, converts to uppercase, and trims
- */
-export function normalizeCode(code: string): string {
-  if (!code || typeof code !== 'string') return '';
-  return code.replace(/\s+/g, '').toUpperCase().trim();
 }
 
 export interface VoterSession {
