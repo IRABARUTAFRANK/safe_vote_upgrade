@@ -178,12 +178,13 @@ export async function createVoterAccount(
       return { success: false, error: passwordValidation.errors?.[0] || "Password does not meet requirements" };
     }
 
-    const sanitizedCode = codeValidation.sanitized!.toUpperCase().trim();
+    // Normalize code same as login/validate: remove spaces, uppercase (must match VoterCode format)
+    const normalizedCode = (codeValidation.sanitized ?? memberCode).replace(/\s+/g, "").toUpperCase().trim();
 
     // Verify code is valid and unused
     const voterCode = await db.voterCode.findFirst({
       where: {
-        code: sanitizedCode,
+        code: normalizedCode,
         status: "UNUSED",
       },
       include: {
@@ -196,9 +197,9 @@ export async function createVoterAccount(
       return { success: false, error: "Invalid or already used member code" };
     }
 
-    // Check if member already exists
+    // Check if member already exists (use same normalized code)
     const existingMember = await db.member.findUnique({
-      where: { memberCode: sanitizedCode },
+      where: { memberCode: normalizedCode },
     });
 
     if (existingMember) {
@@ -208,12 +209,12 @@ export async function createVoterAccount(
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create member account - link to the specific election this code belongs to
+    // Create member account - link to the specific election this code belongs to (store normalized code)
     const member = await db.member.create({
       data: {
         orgId: voterCode.orgId,
         electionId: voterCode.electionId, // Link member to the specific election
-        memberCode: sanitizedCode,
+        memberCode: normalizedCode,
         fullName: nameValidation.sanitized!,
         email: emailValidation.sanitized || null,
         passwordHash,
@@ -232,7 +233,7 @@ export async function createVoterAccount(
       },
     });
 
-    await logSecurityEvent("VOTER_ACCOUNT_CREATED", `Voter account created for code: ${sanitizedCode}`, ipAddress, member.id);
+    await logSecurityEvent("VOTER_ACCOUNT_CREATED", `Voter account created for code: ${normalizedCode}`, ipAddress, member.id);
 
     return { success: true, memberId: member.id };
   } catch (error: any) {
@@ -248,7 +249,7 @@ export async function createVoterAccount(
 export async function loginVoter(
   identifier: string,
   password: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; needsRegistration?: boolean }> {
   try {
     const ipAddress = await getClientIp();
 
@@ -300,6 +301,23 @@ export async function loginVoter(
     }
 
     if (!member) {
+      // If they used a voter code (no @), check if code is valid but no account yet → tell them to register
+      if (!trimmed.includes("@")) {
+        const normalizedCode = trimmed.replace(/\s+/g, "").toUpperCase().trim();
+        const validCode = await db.voterCode.findFirst({
+          where: {
+            code: normalizedCode,
+            status: { in: ["UNUSED", "USED"] },
+          },
+        });
+        if (validCode) {
+          return {
+            success: false,
+            error: "No account found for this voter code. Please create your account first using the form below.",
+            needsRegistration: true,
+          };
+        }
+      }
       await logSecurityEvent("VOTER_LOGIN_FAILED", `Invalid login attempt: ${trimmed.includes("@") ? "email" : "voter ID"}`, ipAddress);
       return { success: false, error: "Invalid email/voter ID or password" };
     }
