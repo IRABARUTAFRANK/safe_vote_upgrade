@@ -399,10 +399,31 @@ export async function getVoterSession(): Promise<VoterSession | null> {
       return null;
     }
 
+    // Backfill electionId from VoterCode when missing (e.g. old accounts or fix session for dashboard)
+    let electionId = member.electionId;
+    if (!electionId) {
+      const normalizedCode = member.memberCode.replace(/\s+/g, "").toUpperCase().trim();
+      const firstVoterCode = await db.voterCode.findFirst({
+        where: {
+          code: normalizedCode,
+          orgId: member.orgId,
+          status: { in: ["UNUSED", "USED"] },
+        },
+        select: { electionId: true },
+      });
+      if (firstVoterCode) {
+        electionId = firstVoterCode.electionId;
+        await db.member.update({
+          where: { id: member.id },
+          data: { electionId },
+        }).catch(() => {}); // ignore update errors
+      }
+    }
+
     return {
       memberId: member.id,
       orgId: member.orgId,
-      electionId: member.electionId,
+      electionId,
       email: member.email,
       fullName: member.fullName,
       memberCode: member.memberCode,

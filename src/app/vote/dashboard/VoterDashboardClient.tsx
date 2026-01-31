@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   getActiveElections,
@@ -12,7 +12,7 @@ import {
   getMyApplications,
   getAccountStatus,
 } from "./actions";
-import styles from "../../organisation/dashboard/dashboard.module.css";
+import voterStyles from "./voter-dashboard.module.css";
 
 interface Election {
   id: string;
@@ -123,18 +123,7 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
   const [selectedPosition, setSelectedPosition] = useState<string>("");
   const [formResponses, setFormResponses] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    loadData();
-    
-    // Auto-refresh every 30 seconds for real-time updates
-    const interval = setInterval(() => {
-      loadData();
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [electionsResult, historyResult, appElectionsResult, myAppsResult, statusResult] = await Promise.all([
@@ -165,7 +154,23 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
+  }, [loadData]);
+
+  // Refresh when user returns to tab (e.g. after creating election elsewhere)
+  useEffect(() => {
+    const onFocus = () => loadData();
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", onFocus);
+      return () => window.removeEventListener("focus", onFocus);
+    }
+  }, [loadData]);
+
 
   async function handleLogout() {
     await logoutVoterAction();
@@ -296,11 +301,11 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     }
   };
 
-  if (loading) {
+  if (loading && elections.length === 0 && applicationElections.length === 0 && history.length === 0) {
     return (
-      <div className={styles.container}>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
-          <div className={styles.spinner}></div>
+      <div className={voterStyles.container}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+          <div className={voterStyles.spinner}></div>
         </div>
       </div>
     );
@@ -314,9 +319,9 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     ).length;
 
     return (
-      <div className={styles.container}>
-        <header className={styles.header} style={{ borderBottom: "1px solid var(--border-color, #1e293b)" }}>
-          <div className={styles.headerContent}>
+      <div className={voterStyles.container}>
+        <header className={voterStyles.header}>
+          <div className={voterStyles.headerContent}>
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <div style={{
                 width: "48px",
@@ -333,8 +338,8 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
                 </svg>
               </div>
               <div>
-                <h1 className={styles.pageTitle} style={{ marginBottom: "0.25rem" }}>Cast Your Vote</h1>
-                <p className={styles.pageSubtitle} style={{ color: "#94a3b8" }}>{votingElection.title}</p>
+                <h1 className={voterStyles.pageTitle} style={{ marginBottom: "0.25rem" }}>Cast Your Vote</h1>
+                <p className={voterStyles.pageSubtitle} style={{ color: "#94a3b8" }}>{votingElection.title}</p>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
@@ -347,7 +352,7 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
                 <span style={{ color: "#94a3b8", fontSize: "0.875rem" }}>Progress: </span>
                 <span style={{ color: "#3b82f6", fontWeight: "600" }}>{votedPositions}/{totalPositions}</span>
               </div>
-              <button className={styles.logoutBtn} onClick={handleCancelVoting} style={{ 
+              <button className={voterStyles.logoutBtn} onClick={handleCancelVoting} style={{ 
                 backgroundColor: "transparent",
                 border: "1px solid var(--border-color, #334155)"
               }}>
@@ -361,7 +366,7 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
           </div>
         </header>
 
-        <div className={styles.content} style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem" }}>
+        <div className={voterStyles.content} style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem" }}>
           {message && (
             <div style={{
               padding: "1rem 1.25rem",
@@ -679,18 +684,18 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     );
 
     return (
-      <div className={styles.container}>
-        <header className={styles.header}>
-          <div className={styles.headerContent}>
+      <div className={voterStyles.container}>
+        <header className={voterStyles.header}>
+          <div className={voterStyles.headerContent}>
             <div>
-              <h1 className={styles.pageTitle}>Apply as Candidate</h1>
-              <p className={styles.pageSubtitle}>{applyingElection.title}</p>
+              <h1 className={voterStyles.pageTitle}>Apply as Candidate</h1>
+              <p className={voterStyles.pageSubtitle}>{applyingElection.title}</p>
             </div>
-            <button className={styles.logoutBtn} onClick={handleCancelApplication}>Cancel</button>
+            <button className={voterStyles.logoutBtn} onClick={handleCancelApplication}>Cancel</button>
           </div>
         </header>
 
-        <div className={styles.content}>
+        <div className={voterStyles.content}>
           {message && (
             <div style={{
               padding: "1rem",
@@ -703,9 +708,9 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
             </div>
           )}
 
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <div className={voterStyles.card}>
+            <div className={voterStyles.cardHeader}>
+              <h2 className={voterStyles.cardTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                   <circle cx="9" cy="7" r="4"/>
@@ -979,14 +984,21 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
 
   // Main Dashboard
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
+    <div className={voterStyles.container}>
+      <header className={voterStyles.header}>
+        <div className={voterStyles.headerContent}>
           <div>
-            <h1 className={styles.pageTitle}>Voter Dashboard</h1>
-            <p className={styles.pageSubtitle}>Cast your vote and apply as candidate</p>
+            <h1 className={voterStyles.pageTitle}>Voter Dashboard</h1>
+            <p className={voterStyles.pageSubtitle}>Cast your vote and apply as candidate</p>
+            <div className={voterStyles.welcomeBadge}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              {session.fullName} · {session.orgName}
+            </div>
           </div>
-          <button className={styles.logoutBtn} onClick={handleLogout}>
+          <button className={voterStyles.logoutBtn} onClick={handleLogout}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
@@ -997,7 +1009,7 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
         </div>
       </header>
 
-      <div className={styles.content}>
+      <div className={voterStyles.content}>
         {/* Account Status Banner */}
         {accountStatus && !accountStatus.hasActiveElections && history.length > 0 && (
           <div style={{
@@ -1025,7 +1037,7 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "center" }}>
+        <div className={voterStyles.tabRow}>
           {[
             { key: "elections", label: "Vote", count: elections.filter((e) => e.canVote).length },
             { key: "apply", label: "Apply as Candidate", count: applicationElections.length },
@@ -1035,37 +1047,15 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as TabType)}
-              style={{
-                padding: "0.75rem 1.25rem",
-                borderRadius: "8px",
-                border: "none",
-                backgroundColor: activeTab === tab.key ? "#3b82f6" : "var(--card-bg)",
-                color: activeTab === tab.key ? "white" : "inherit",
-                cursor: "pointer",
-                fontWeight: "500",
-              }}
+              className={activeTab === tab.key ? `${voterStyles.tabBtn} ${voterStyles.tabBtnActive}` : voterStyles.tabBtn}
             >
               {tab.label} ({tab.count})
             </button>
           ))}
           <button
-            onClick={() => {
-              setLoading(true);
-              loadData();
-            }}
+            onClick={() => loadData()}
             disabled={loading}
-            style={{
-              padding: "0.5rem 1rem",
-              borderRadius: "8px",
-              border: "1px solid var(--border-color, #334155)",
-              backgroundColor: "transparent",
-              color: "#94a3b8",
-              cursor: loading ? "not-allowed" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              marginLeft: "auto",
-            }}
+            className={voterStyles.refreshBtn}
             title="Refresh data"
           >
             <svg 
@@ -1075,7 +1065,7 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
               fill="none" 
               stroke="currentColor" 
               strokeWidth="2"
-              style={{ animation: loading ? "spin 1s linear infinite" : "none" }}
+              style={{ animation: loading ? "spin 0.8s linear infinite" : "none" }}
             >
               <path d="M23 4v6h-6" />
               <path d="M1 20v-6h6" />
@@ -1087,51 +1077,42 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
 
         {/* Elections Tab */}
         {activeTab === "elections" && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>Active Elections</h2>
+          <div className={voterStyles.card}>
+            <div className={voterStyles.cardHeader}>
+              <h2 className={voterStyles.cardTitle}>Active Elections</h2>
             </div>
             {elections.length === 0 ? (
-              <div className={styles.emptyState}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className={voterStyles.emptyState}>
+                <svg className={voterStyles.emptyStateIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   <line x1="9" y1="3" x2="9" y2="21" />
                 </svg>
                 <p>No active elections at the moment.</p>
+                <p className={voterStyles.emptyStateHint}>Elections you can vote in will appear here when they are open and you are linked with the correct voter code.</p>
               </div>
             ) : (
-              <div className={styles.electionsList}>
+              <div className={voterStyles.electionsList}>
                 {elections.map((election) => (
-                  <div key={election.id} className={styles.electionItem} style={{ display: "block" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <h3 className={styles.electionTitle}>{election.title}</h3>
-                        <div className={styles.electionMeta}>
-                          <span className={styles.statusBadge} style={{
-                            backgroundColor: election.hasVoted ? "rgba(16, 185, 129, 0.1)" : "rgba(59, 130, 246, 0.1)",
-                            color: election.hasVoted ? "#10b981" : "#3b82f6",
-                            borderColor: election.hasVoted ? "#10b981" : "#3b82f6",
-                          }}>
-                            {election.hasVoted ? "Voted" : "Open"}
-                          </span>
-                          <span className={styles.metaText}>{election.positions.length} position(s)</span>
-                          <span className={styles.metaText}>Ends: {formatDate(election.endDate)}</span>
-                        </div>
-                      </div>
-                      {election.canVote && !election.hasVoted && (
-                        <button onClick={() => handleStartVoting(election)} style={{
-                          padding: "0.5rem 1rem",
-                          borderRadius: "6px",
-                          border: "none",
-                          backgroundColor: "#3b82f6",
-                          color: "white",
-                          cursor: "pointer",
-                          fontWeight: "500",
+                  <div key={election.id} className={voterStyles.electionItem}>
+                    <div>
+                      <h3 className={voterStyles.electionTitle}>{election.title}</h3>
+                      <div className={voterStyles.electionMeta}>
+                        <span className={voterStyles.statusBadge} style={{
+                          backgroundColor: election.hasVoted ? "rgba(16, 185, 129, 0.1)" : "rgba(59, 130, 246, 0.1)",
+                          color: election.hasVoted ? "#10b981" : "#3b82f6",
+                          borderColor: election.hasVoted ? "#10b981" : "#3b82f6",
                         }}>
-                          Vote Now
-                        </button>
-                      )}
+                          {election.hasVoted ? "Voted" : "Open"}
+                        </span>
+                        <span className={voterStyles.metaText}>{election.positions.length} position(s)</span>
+                        <span className={voterStyles.metaText}>Ends: {formatDate(election.endDate)}</span>
+                      </div>
                     </div>
+                    {election.canVote && !election.hasVoted && (
+                      <button onClick={() => handleStartVoting(election)} className={voterStyles.voteNowBtn}>
+                        Vote Now
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1141,52 +1122,45 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
 
         {/* Apply Tab */}
         {activeTab === "apply" && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>Apply as Candidate</h2>
+          <div className={voterStyles.card}>
+            <div className={voterStyles.cardHeader}>
+              <h2 className={voterStyles.cardTitle}>Apply as Candidate</h2>
             </div>
             {applicationElections.length === 0 ? (
-              <div className={styles.emptyState}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className={voterStyles.emptyState}>
+                <svg className={voterStyles.emptyStateIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
                 </svg>
                 <p>No elections are currently accepting candidate applications.</p>
+                <p className={voterStyles.emptyStateHint}>
+                  If you expect to see an election here, make sure you signed in with the voter code issued for that election, and that the organisation has opened applications (Candidate method: Application) for that election.
+                </p>
               </div>
             ) : (
-              <div className={styles.electionsList}>
+              <div className={voterStyles.electionsList}>
                 {applicationElections.map((election) => {
                   const appliedCount = election.applications.length;
                   const totalPositions = election.positions.length;
                   return (
-                    <div key={election.id} className={styles.electionItem} style={{ display: "block" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div>
-                          <h3 className={styles.electionTitle}>{election.title}</h3>
-                          <div className={styles.electionMeta}>
-                            <span className={styles.metaText}>{totalPositions} position(s)</span>
-                            <span className={styles.metaText}>Applied: {appliedCount}/{totalPositions}</span>
-                            {election.applicationEndDate && (
-                              <span className={styles.metaText}>
-                                Deadline: {formatDate(election.applicationEndDate)}
-                              </span>
-                            )}
-                          </div>
+                    <div key={election.id} className={voterStyles.electionItem}>
+                      <div>
+                        <h3 className={voterStyles.electionTitle}>{election.title}</h3>
+                        <div className={voterStyles.electionMeta}>
+                          <span className={voterStyles.metaText}>{totalPositions} position(s)</span>
+                          <span className={voterStyles.metaText}>Applied: {appliedCount}/{totalPositions}</span>
+                          {election.applicationEndDate && (
+                            <span className={voterStyles.metaText}>
+                              Deadline: {formatDate(election.applicationEndDate)}
+                            </span>
+                          )}
                         </div>
-                        {appliedCount < totalPositions && (
-                          <button onClick={() => handleStartApplication(election)} style={{
-                            padding: "0.5rem 1rem",
-                            borderRadius: "6px",
-                            border: "none",
-                            backgroundColor: "#10b981",
-                            color: "white",
-                            cursor: "pointer",
-                            fontWeight: "500",
-                          }}>
-                            Apply
-                          </button>
-                        )}
                       </div>
+                      {appliedCount < totalPositions && (
+                        <button onClick={() => handleStartApplication(election)} className={voterStyles.applyBtn}>
+                          Apply
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -1197,33 +1171,33 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
 
         {/* My Applications Tab */}
         {activeTab === "applications" && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>My Applications</h2>
+          <div className={voterStyles.card}>
+            <div className={voterStyles.cardHeader}>
+              <h2 className={voterStyles.cardTitle}>My Applications</h2>
             </div>
             {myApplications.length === 0 ? (
-              <div className={styles.emptyState}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className={voterStyles.emptyState}>
+                <svg className={voterStyles.emptyStateIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 </svg>
                 <p>You haven&apos;t submitted any applications yet.</p>
               </div>
             ) : (
-              <div className={styles.electionsList}>
+              <div className={voterStyles.electionsList}>
                 {myApplications.map((app) => (
-                  <div key={app.id} className={styles.electionItem} style={{ display: "block" }}>
+                  <div key={app.id} className={voterStyles.electionItem}>
                     <div>
-                      <h3 className={styles.electionTitle}>{app.election.title}</h3>
-                      <div className={styles.electionMeta}>
-                        <span className={styles.metaText}>Position: {app.position.name}</span>
-                        <span className={styles.statusBadge} style={{
+                      <h3 className={voterStyles.electionTitle}>{app.election.title}</h3>
+                      <div className={voterStyles.electionMeta}>
+                        <span className={voterStyles.metaText}>Position: {app.position.name}</span>
+                        <span className={voterStyles.statusBadge} style={{
                           backgroundColor: `${getStatusColor(app.status)}20`,
                           color: getStatusColor(app.status),
                           borderColor: getStatusColor(app.status),
                         }}>
                           {app.status}
                         </span>
-                        <span className={styles.metaText}>Submitted: {formatDate(app.submittedAt)}</span>
+                        <span className={voterStyles.metaText}>Submitted: {formatDate(app.submittedAt)}</span>
                       </div>
                     </div>
                   </div>
@@ -1235,34 +1209,34 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
 
         {/* History Tab */}
         {activeTab === "history" && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>Voting History</h2>
+          <div className={voterStyles.card}>
+            <div className={voterStyles.cardHeader}>
+              <h2 className={voterStyles.cardTitle}>Voting History</h2>
             </div>
             {history.length === 0 ? (
-              <div className={styles.emptyState}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className={voterStyles.emptyState}>
+                <svg className={voterStyles.emptyStateIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 12l2 2 4-4" />
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                 </svg>
                 <p>You haven&apos;t voted in any elections yet.</p>
               </div>
             ) : (
-              <div className={styles.electionsList}>
+              <div className={voterStyles.electionsList}>
                 {history.map((ballot) => (
-                  <div key={ballot.id} className={styles.electionItem} style={{ display: "block" }}>
+                  <div key={ballot.id} className={voterStyles.electionItem}>
                     <div>
-                      <h3 className={styles.electionTitle}>{ballot.election.title}</h3>
-                      <div className={styles.electionMeta}>
-                        <span className={styles.statusBadge} style={{
+                      <h3 className={voterStyles.electionTitle}>{ballot.election.title}</h3>
+                      <div className={voterStyles.electionMeta}>
+                        <span className={voterStyles.statusBadge} style={{
                           backgroundColor: "rgba(16, 185, 129, 0.1)",
                           color: "#10b981",
                           borderColor: "#10b981",
                         }}>
                           Voted
                         </span>
-                        <span className={styles.metaText}>Voted on: {formatDate(ballot.createdAt)}</span>
-                        <span className={styles.metaText}>Total votes: {ballot.election._count.ballots}</span>
+                        <span className={voterStyles.metaText}>Voted on: {formatDate(ballot.createdAt)}</span>
+                        <span className={voterStyles.metaText}>Total votes: {ballot.election._count.ballots}</span>
                       </div>
                     </div>
                   </div>
