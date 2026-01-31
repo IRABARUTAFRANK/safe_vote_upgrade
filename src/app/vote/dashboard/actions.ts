@@ -495,23 +495,15 @@ export async function getElectionsForApplication() {
     const now = new Date();
     const normalizedMemberCode = session.memberCode.replace(/\s+/g, '').toUpperCase().trim();
     
-    console.log("[DEBUG] getElectionsForApplication - Session:", {
-      memberId: session.memberId,
-      orgId: session.orgId,
-      electionId: session.electionId,
-      memberCode: session.memberCode,
-    });
-    
     // Find all elections the member has access to
     const accessibleElectionIds = new Set<string>();
     
     // Add election from session if exists
     if (session.electionId) {
       accessibleElectionIds.add(session.electionId);
-      console.log("[DEBUG] Added electionId from session:", session.electionId);
     }
-    
-    // Also check for voter codes with matching member code
+
+    // Also check for voter codes with matching member code (same org)
     const memberVoterCodes = await db.voterCode.findMany({
       where: {
         code: normalizedMemberCode,
@@ -520,14 +512,9 @@ export async function getElectionsForApplication() {
       },
       select: { electionId: true },
     });
-    
-    console.log("[DEBUG] VoterCodes found:", memberVoterCodes);
     memberVoterCodes.forEach(vc => accessibleElectionIds.add(vc.electionId));
-    
-    console.log("[DEBUG] Accessible election IDs:", Array.from(accessibleElectionIds));
-    
+
     if (accessibleElectionIds.size === 0) {
-      console.log("[DEBUG] No accessible elections found");
       return { success: true, data: [] };
     }
 
@@ -554,6 +541,11 @@ export async function getElectionsForApplication() {
             applicationStartDate: { lte: now },
             applicationEndDate: null,
           },
+          // Case 4: No application dates set - applications always open for DRAFT/ACTIVE
+          {
+            applicationStartDate: null,
+            applicationEndDate: null,
+          },
         ],
       },
       include: {
@@ -569,8 +561,6 @@ export async function getElectionsForApplication() {
         },
       },
     });
-
-    console.log("[DEBUG] Elections found:", elections.length, elections.map(e => ({ id: e.id, title: e.title, status: e.status })));
 
     return { success: true, data: elections };
   } catch (error) {

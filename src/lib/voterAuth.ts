@@ -244,9 +244,9 @@ export async function createVoterAccount(
   }
 }
 
-// Step 3: Login with member code and password
+// Step 3: Login with member code or email and password
 export async function loginVoter(
-  memberCode: string,
+  identifier: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -262,29 +262,46 @@ export async function loginVoter(
       };
     }
 
-    // Validate inputs
-    const codeValidation = validateAndSanitizeInput(memberCode, {
-      type: "text",
-      maxLength: 10,
-      required: true,
-    });
-    if (!codeValidation.valid) {
-      return { success: false, error: "Invalid member code" };
+    const trimmed = (identifier || "").trim();
+    if (!trimmed) {
+      return { success: false, error: "Please enter your email or voter ID" };
     }
 
-    const sanitizedCode = codeValidation.sanitized!.toUpperCase().trim();
-
-    // Find member
-    const member = await db.member.findUnique({
-      where: { memberCode: sanitizedCode },
-      include: {
-        organisation: true,
-      },
-    });
+    // Find member by email OR by member code (voter ID)
+    let member = null;
+    if (trimmed.includes("@")) {
+      // Login by email
+      const emailValidation = validateAndSanitizeInput(trimmed, {
+        type: "email",
+        required: true,
+      });
+      if (!emailValidation.valid) {
+        return { success: false, error: "Invalid email format" };
+      }
+      member = await db.member.findFirst({
+        where: { email: emailValidation.sanitized!.toLowerCase() },
+        include: { organisation: true },
+      });
+    } else {
+      // Login by member code (voter ID)
+      const codeValidation = validateAndSanitizeInput(trimmed, {
+        type: "text",
+        maxLength: 50,
+        required: true,
+      });
+      if (!codeValidation.valid) {
+        return { success: false, error: "Invalid voter ID format" };
+      }
+      const sanitizedCode = codeValidation.sanitized!.replace(/\s+/g, "").toUpperCase().trim();
+      member = await db.member.findUnique({
+        where: { memberCode: sanitizedCode },
+        include: { organisation: true },
+      });
+    }
 
     if (!member) {
-      await logSecurityEvent("VOTER_LOGIN_FAILED", `Invalid member code login attempt: ${sanitizedCode}`, ipAddress);
-      return { success: false, error: "Invalid member code or password" };
+      await logSecurityEvent("VOTER_LOGIN_FAILED", `Invalid login attempt: ${trimmed.includes("@") ? "email" : "voter ID"}`, ipAddress);
+      return { success: false, error: "Invalid email/voter ID or password" };
     }
 
     if (!member.passwordHash) {
@@ -442,6 +459,7 @@ export async function getVoterAccountStatus(): Promise<{
           { applicationStartDate: { lte: now }, applicationEndDate: { gte: now } },
           { applicationStartDate: null, applicationEndDate: { gte: now } },
           { applicationStartDate: { lte: now }, applicationEndDate: null },
+          { applicationStartDate: null, applicationEndDate: null },
         ],
       },
     });
