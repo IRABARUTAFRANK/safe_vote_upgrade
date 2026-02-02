@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ThemeToggle from "../../components/ThemeToggle";
 import { approveOrganisation, rejectOrganisation, handleLogout, generateOrgCodeForOrg, deleteOrganisation } from "./actions";
 
 interface DashboardProps {
@@ -26,8 +27,10 @@ interface DashboardProps {
 
 export default function DashboardClient({ session, data }: DashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "organisations" | "logs">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "organisations" | "logs" | "settings">("overview");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL");
 
   async function onLogout() {
     setIsLoggingOut(true);
@@ -104,30 +107,38 @@ export default function DashboardClient({ session, data }: DashboardProps) {
     }
   };
 
+  // Filter organisations
+  const filteredOrgs = data.recentOrganisations.filter(org => {
+    const matchesSearch = org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          org.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "ALL" || org.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex">
+    <div className="min-h-screen bg-base-100 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-base-100/50 backdrop-blur-lg border-r border-base-content/10 flex flex-col">
-        <div className="p-6 border-b border-base-content/10">
+      <aside className="w-64 bg-base-200 border-r border-base-300 flex flex-col">
+        <div className="p-6 border-b border-base-300">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <div>
-              <h1 className="font-bold text-base-content">SafeVote</h1>
-              <p className="text-xs text-base-content/60">Super Admin</p>
+              <h1 className="font-bold">SafeVote</h1>
+              <p className="text-xs opacity-60">Super Admin</p>
             </div>
           </div>
         </div>
 
         <nav className="flex-1 p-4">
-          <ul className="menu bg-transparent w-full gap-1">
+          <ul className="menu gap-1">
             <li>
               <button
                 onClick={() => setActiveTab("overview")}
-                className={`flex items-center gap-3 ${activeTab === "overview" ? "active bg-primary text-primary-content" : ""}`}
+                className={activeTab === "overview" ? "active" : ""}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -138,7 +149,7 @@ export default function DashboardClient({ session, data }: DashboardProps) {
             <li>
               <button
                 onClick={() => setActiveTab("organisations")}
-                className={`flex items-center gap-3 ${activeTab === "organisations" ? "active bg-primary text-primary-content" : ""}`}
+                className={activeTab === "organisations" ? "active" : ""}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -152,7 +163,7 @@ export default function DashboardClient({ session, data }: DashboardProps) {
             <li>
               <button
                 onClick={() => setActiveTab("logs")}
-                className={`flex items-center gap-3 ${activeTab === "logs" ? "active bg-primary text-primary-content" : ""}`}
+                className={activeTab === "logs" ? "active" : ""}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -160,19 +171,31 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                 Activity Logs
               </button>
             </li>
+            <li>
+              <button
+                onClick={() => setActiveTab("settings")}
+                className={activeTab === "settings" ? "active" : ""}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Settings
+              </button>
+            </li>
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-base-content/10">
+        <div className="p-4 border-t border-base-300">
           <div className="flex items-center gap-3 mb-4">
             <div className="avatar placeholder">
-              <div className="w-10 h-10 rounded-full bg-primary text-primary-content">
+              <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center">
                 <span className="text-sm font-bold">{session.fullName.charAt(0)}</span>
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-base-content truncate">{session.fullName}</p>
-              <p className="text-xs text-base-content/60 truncate">{session.email}</p>
+              <p className="font-medium text-sm truncate">{session.fullName}</p>
+              <p className="text-xs opacity-60 truncate">{session.email}</p>
             </div>
           </div>
           <button 
@@ -190,25 +213,28 @@ export default function DashboardClient({ session, data }: DashboardProps) {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-40 bg-base-100/80 backdrop-blur-lg border-b border-base-content/10 px-8 py-4">
+        <header className="sticky top-0 z-40 bg-base-100/80 backdrop-blur-lg border-b border-base-300 px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-base-content">
+              <h1 className="text-2xl font-bold">
                 {activeTab === "overview" && "Dashboard Overview"}
                 {activeTab === "organisations" && "Manage Organisations"}
                 {activeTab === "logs" && "Activity Logs"}
+                {activeTab === "settings" && "System Settings"}
               </h1>
-              <p className="text-sm text-base-content/60">
+              <p className="text-sm opacity-60">
                 {activeTab === "overview" && "Platform statistics and recent activity"}
                 {activeTab === "organisations" && "Review and manage organisation registrations"}
                 {activeTab === "logs" && "Track all administrative actions"}
+                {activeTab === "settings" && "Configure system preferences"}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <div className="badge badge-success badge-outline gap-2">
-                <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 System Operational
               </div>
+              <ThemeToggle />
             </div>
           </div>
         </header>
@@ -218,54 +244,103 @@ export default function DashboardClient({ session, data }: DashboardProps) {
           {activeTab === "overview" && (
             <>
               {/* Stats Grid */}
-              <div className="stats stats-vertical lg:stats-horizontal shadow-xl w-full mb-8 bg-base-100">
+              <div className="stats stats-vertical lg:stats-horizontal shadow-xl w-full mb-8">
                 <div className="stat">
-                  <div className="stat-figure text-primary">
+                  <div className="stat-figure text-emerald-500">
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
                   <div className="stat-title">Total Organisations</div>
-                  <div className="stat-value text-primary">{data.stats.totalOrganisations}</div>
+                  <div className="stat-value text-emerald-500">{data.stats.totalOrganisations}</div>
                   <div className="stat-desc">{data.stats.approvedOrganisations} approved</div>
                 </div>
 
                 <div className="stat">
-                  <div className="stat-figure text-warning">
+                  <div className="stat-figure text-amber-500">
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div className="stat-title">Pending Approval</div>
-                  <div className="stat-value text-warning">{data.stats.pendingOrganisations}</div>
+                  <div className="stat-value text-amber-500">{data.stats.pendingOrganisations}</div>
                   <div className="stat-desc">Awaiting review</div>
                 </div>
 
                 <div className="stat">
-                  <div className="stat-figure text-success">
+                  <div className="stat-figure text-blue-500">
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
                   <div className="stat-title">Total Members</div>
-                  <div className="stat-value text-success">{data.stats.totalMembers}</div>
+                  <div className="stat-value text-blue-500">{data.stats.totalMembers}</div>
                   <div className="stat-desc">Across all orgs</div>
                 </div>
 
                 <div className="stat">
-                  <div className="stat-figure text-secondary">
+                  <div className="stat-figure text-purple-500">
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div className="stat-title">Total Elections</div>
-                  <div className="stat-value text-secondary">{data.stats.totalElections}</div>
+                  <div className="stat-value text-purple-500">{data.stats.totalElections}</div>
                   <div className="stat-desc">All time</div>
                 </div>
               </div>
 
+              {/* Quick Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <button 
+                  onClick={() => setActiveTab("organisations")}
+                  className="card shadow-lg card-hover cursor-pointer"
+                >
+                  <div className="card-body items-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center mb-2">
+                      <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-bold">Review Pending</h3>
+                    <p className="text-sm opacity-60">{data.stats.pendingOrganisations} organisations waiting</p>
+                  </div>
+                </button>
+                
+                <button 
+                  onClick={() => setActiveTab("logs")}
+                  className="card shadow-lg card-hover cursor-pointer"
+                >
+                  <div className="card-body items-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-2">
+                      <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-bold">View Activity</h3>
+                    <p className="text-sm opacity-60">Recent admin actions</p>
+                  </div>
+                </button>
+                
+                <button 
+                  onClick={() => setActiveTab("settings")}
+                  className="card shadow-lg card-hover cursor-pointer"
+                >
+                  <div className="card-body items-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mb-2">
+                      <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-bold">System Settings</h3>
+                    <p className="text-sm opacity-60">Configure platform</p>
+                  </div>
+                </button>
+              </div>
+
               {/* Recent Organisations Card */}
-              <div className="card bg-base-100 shadow-xl">
+              <div className="card shadow-xl">
                 <div className="card-body">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="card-title">Recent Organisations</h2>
@@ -281,7 +356,7 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                   </div>
                   
                   <div className="overflow-x-auto">
-                    <table className="table table-zebra">
+                    <table className="table table-zebra hover">
                       <thead>
                         <tr>
                           <th>Organisation</th>
@@ -299,14 +374,14 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                             <td>
                               <div>
                                 <div className="font-bold">{org.name}</div>
-                                <div className="text-sm text-base-content/60">{org.email}</div>
+                                <div className="text-sm opacity-60">{org.email}</div>
                               </div>
                             </td>
                             <td>{org.type || "—"}</td>
                             <td>{org._count.members}</td>
                             <td>
                               {org.orgCode ? (
-                                <code className="bg-base-200 px-2 py-1 rounded text-xs">{org.orgCode}</code>
+                                <code className="bg-base-300 px-2 py-1 rounded text-xs">{org.orgCode}</code>
                               ) : "—"}
                             </td>
                             <td>
@@ -331,24 +406,13 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                                     </button>
                                   </>
                                 )}
-                                {!org.orgCode && (
-                                  <button className="btn btn-info btn-xs" onClick={() => onGenerateCode(org.id)}>
-                                    Gen Code
-                                  </button>
-                                )}
-                                <button 
-                                  className="btn btn-error btn-outline btn-xs"
-                                  onClick={() => onDelete(org.id, org.name)}
-                                >
-                                  Delete
-                                </button>
                               </div>
                             </td>
                           </tr>
                         ))}
                         {data.recentOrganisations.length === 0 && (
                           <tr>
-                            <td colSpan={7} className="text-center py-8 text-base-content/60">
+                            <td colSpan={7} className="text-center py-8 opacity-60">
                               No organisations yet
                             </td>
                           </tr>
@@ -363,11 +427,33 @@ export default function DashboardClient({ session, data }: DashboardProps) {
 
           {/* Organisations Tab */}
           {activeTab === "organisations" && (
-            <div className="card bg-base-100 shadow-xl">
+            <div className="card shadow-xl">
               <div className="card-body">
-                <h2 className="card-title mb-4">All Organisations</h2>
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                  <h2 className="card-title">All Organisations</h2>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Search organisations..."
+                      className="input input-bordered input-sm w-64"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <select
+                      className="select select-bordered select-sm"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as any)}
+                    >
+                      <option value="ALL">All Status</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="APPROVED">Approved</option>
+                      <option value="REJECTED">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+                
                 <div className="overflow-x-auto">
-                  <table className="table table-zebra">
+                  <table className="table table-zebra hover">
                     <thead>
                       <tr>
                         <th>Organisation</th>
@@ -381,12 +467,12 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.recentOrganisations.map((org) => (
+                      {filteredOrgs.map((org) => (
                         <tr key={org.id}>
                           <td>
                             <div>
                               <div className="font-bold">{org.name}</div>
-                              <div className="text-sm text-base-content/60">{org.email}</div>
+                              <div className="text-sm opacity-60">{org.email}</div>
                             </div>
                           </td>
                           <td>{org.type || "—"}</td>
@@ -394,7 +480,7 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                           <td>{org._count.elections}</td>
                           <td>
                             {org.orgCode ? (
-                              <code className="bg-base-200 px-2 py-1 rounded text-xs">{org.orgCode}</code>
+                              <code className="bg-base-300 px-2 py-1 rounded text-xs">{org.orgCode}</code>
                             ) : "—"}
                           </td>
                           <td>
@@ -419,7 +505,7 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                                   </button>
                                 </>
                               )}
-                              {!org.orgCode && (
+                              {!org.orgCode && org.status === "APPROVED" && (
                                 <button className="btn btn-info btn-xs" onClick={() => onGenerateCode(org.id)}>
                                   Gen Code
                                 </button>
@@ -434,10 +520,10 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                           </td>
                         </tr>
                       ))}
-                      {data.recentOrganisations.length === 0 && (
+                      {filteredOrgs.length === 0 && (
                         <tr>
-                          <td colSpan={8} className="text-center py-8 text-base-content/60">
-                            No organisations yet
+                          <td colSpan={8} className="text-center py-8 opacity-60">
+                            No organisations found
                           </td>
                         </tr>
                       )}
@@ -450,17 +536,17 @@ export default function DashboardClient({ session, data }: DashboardProps) {
 
           {/* Logs Tab */}
           {activeTab === "logs" && (
-            <div className="card bg-base-100 shadow-xl">
+            <div className="card shadow-xl">
               <div className="card-body">
                 <h2 className="card-title mb-4">Recent Activity</h2>
                 <div className="space-y-3">
                   {data.recentLogs.map((log) => (
-                    <div key={log.id} className="flex items-start gap-4 p-4 rounded-xl bg-base-200 hover:bg-base-300 transition-colors">
+                    <div key={log.id} className="flex items-start gap-4 p-4 rounded-xl bg-base-200">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        log.action.includes("LOGIN") ? "bg-info/20 text-info" :
-                        log.action.includes("APPROVE") ? "bg-success/20 text-success" :
-                        log.action.includes("REJECT") ? "bg-error/20 text-error" :
-                        "bg-base-300 text-base-content/60"
+                        log.action.includes("LOGIN") ? "bg-blue-500/20 text-blue-500" :
+                        log.action.includes("APPROVE") ? "bg-emerald-500/20 text-emerald-500" :
+                        log.action.includes("REJECT") ? "bg-red-500/20 text-red-500" :
+                        "bg-base-300 opacity-60"
                       }`}>
                         {log.action.includes("LOGIN") && (
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -484,12 +570,12 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-base-content">{log.action.replace(/_/g, " ")}</p>
-                        <p className="text-sm text-base-content/60">
+                        <p className="font-medium">{log.action.replace(/_/g, " ")}</p>
+                        <p className="text-sm opacity-60">
                           by {log.admin.fullName} • {formatDate(log.createdAt)}
                         </p>
                         {log.details && (
-                          <p className="text-sm text-base-content/40 mt-1">{log.details}</p>
+                          <p className="text-sm opacity-40 mt-1">{log.details}</p>
                         )}
                       </div>
                       {log.ipAddress && (
@@ -498,10 +584,101 @@ export default function DashboardClient({ session, data }: DashboardProps) {
                     </div>
                   ))}
                   {data.recentLogs.length === 0 && (
-                    <div className="text-center py-12 text-base-content/60">
+                    <div className="text-center py-12 opacity-60">
                       No activity logs yet
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-6">
+              <div className="card shadow-xl">
+                <div className="card-body">
+                  <h2 className="card-title mb-4">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    Appearance
+                  </h2>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-medium">Theme Settings</span>
+                    </label>
+                    <p className="text-sm opacity-60 mb-4">Customize the look and feel of the admin panel</p>
+                    <ThemeToggle />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="card shadow-xl">
+                <div className="card-body">
+                  <h2 className="card-title mb-4">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Security
+                  </h2>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-base-200 rounded-lg">
+                      <div>
+                        <p className="font-medium">Two-Factor Authentication</p>
+                        <p className="text-sm opacity-60">Add an extra layer of security</p>
+                      </div>
+                      <input type="checkbox" className="toggle toggle-success" defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-base-200 rounded-lg">
+                      <div>
+                        <p className="font-medium">Session Timeout</p>
+                        <p className="text-sm opacity-60">Auto-logout after inactivity</p>
+                      </div>
+                      <select className="select select-bordered select-sm">
+                        <option>15 minutes</option>
+                        <option>30 minutes</option>
+                        <option selected>1 hour</option>
+                        <option>4 hours</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-base-200 rounded-lg">
+                      <div>
+                        <p className="font-medium">Login Notifications</p>
+                        <p className="text-sm opacity-60">Get notified of new logins</p>
+                      </div>
+                      <input type="checkbox" className="toggle toggle-success" defaultChecked />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="card shadow-xl">
+                <div className="card-body">
+                  <h2 className="card-title mb-4">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    System Information
+                  </h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-base-200 rounded-lg">
+                      <p className="text-sm opacity-60">Version</p>
+                      <p className="font-medium">SafeVote v2.0.0</p>
+                    </div>
+                    <div className="p-4 bg-base-200 rounded-lg">
+                      <p className="text-sm opacity-60">Environment</p>
+                      <p className="font-medium">Production</p>
+                    </div>
+                    <div className="p-4 bg-base-200 rounded-lg">
+                      <p className="text-sm opacity-60">Database</p>
+                      <p className="font-medium">PostgreSQL</p>
+                    </div>
+                    <div className="p-4 bg-base-200 rounded-lg">
+                      <p className="text-sm opacity-60">Uptime</p>
+                      <p className="font-medium">99.9%</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
