@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import styles from "./dashboard.module.css";
 import { approveOrganisation, rejectOrganisation, handleLogout, generateOrgCodeForOrg, deleteOrganisation } from "./actions";
 
 interface DashboardProps {
@@ -65,23 +64,10 @@ export default function DashboardClient({ session, data }: DashboardProps) {
 
   async function onDelete(orgId: string, orgName: string) {
     const confirm = window.confirm(
-      `Are you sure you want to delete "${orgName}"?\n\n` +
-      `This action will permanently delete:\n` +
-      `- The organisation and all its data\n` +
-      `- All members associated with this organisation\n` +
-      `- All elections and voting data\n\n` +
-      `This action CANNOT be undone.`
+      `Are you sure you want to delete "${orgName}"?\n\nThis action will permanently delete all organisation data.\n\nThis action CANNOT be undone.`
     );
     
     if (!confirm) return;
-    
-    // Double confirmation for safety
-    const doubleConfirm = window.confirm(
-      `FINAL CONFIRMATION: Delete "${orgName}"?\n\n` +
-      `Type "DELETE" in the next prompt to confirm.`
-    );
-    
-    if (!doubleConfirm) return;
     
     const typedConfirm = window.prompt(`Type "DELETE" to confirm deletion of "${orgName}":`);
     
@@ -110,89 +96,92 @@ export default function DashboardClient({ session, data }: DashboardProps) {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusStyles: Record<string, string> = {
-      PENDING: styles.statusPending,
-      APPROVED: styles.statusApproved,
-      REJECTED: styles.statusRejected,
-    };
-    return `${styles.statusBadge} ${statusStyles[status] || ""}`;
+    switch (status) {
+      case "PENDING": return "badge-warning";
+      case "APPROVED": return "badge-success";
+      case "REJECTED": return "badge-error";
+      default: return "badge-ghost";
+    }
   };
 
   return (
-    <div className={styles.container}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex">
       {/* Sidebar */}
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </div>
-          <div className={styles.logoText}>
-            <span className={styles.logoTitle}>SafeVote</span>
-            <span className={styles.logoSubtitle}>Super Admin</span>
+      <aside className="w-64 bg-base-100/50 backdrop-blur-lg border-r border-base-content/10 flex flex-col">
+        <div className="p-6 border-b border-base-content/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="font-bold text-base-content">SafeVote</h1>
+              <p className="text-xs text-base-content/60">Super Admin</p>
+            </div>
           </div>
         </div>
 
-        <nav className={styles.nav}>
-          <button
-            className={`${styles.navItem} ${activeTab === "overview" ? styles.navItemActive : ""}`}
-            onClick={() => setActiveTab("overview")}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7"/>
-              <rect x="14" y="3" width="7" height="7"/>
-              <rect x="14" y="14" width="7" height="7"/>
-              <rect x="3" y="14" width="7" height="7"/>
-            </svg>
-            Overview
-          </button>
-          <button
-            className={`${styles.navItem} ${activeTab === "organisations" ? styles.navItemActive : ""}`}
-            onClick={() => setActiveTab("organisations")}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            Organisations
-            {data.stats.pendingOrganisations > 0 && (
-              <span className={styles.badge}>{data.stats.pendingOrganisations}</span>
-            )}
-          </button>
-          <button
-            className={`${styles.navItem} ${activeTab === "logs" ? styles.navItemActive : ""}`}
-            onClick={() => setActiveTab("logs")}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-            Activity Logs
-          </button>
+        <nav className="flex-1 p-4">
+          <ul className="menu bg-transparent w-full gap-1">
+            <li>
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`flex items-center gap-3 ${activeTab === "overview" ? "active bg-primary text-primary-content" : ""}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                Overview
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setActiveTab("organisations")}
+                className={`flex items-center gap-3 ${activeTab === "organisations" ? "active bg-primary text-primary-content" : ""}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Organisations
+                {data.stats.pendingOrganisations > 0 && (
+                  <span className="badge badge-error badge-sm">{data.stats.pendingOrganisations}</span>
+                )}
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setActiveTab("logs")}
+                className={`flex items-center gap-3 ${activeTab === "logs" ? "active bg-primary text-primary-content" : ""}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Activity Logs
+              </button>
+            </li>
+          </ul>
         </nav>
 
-        <div className={styles.sidebarFooter}>
-          <div className={styles.adminInfo}>
-            <div className={styles.adminAvatar}>
-              {session.fullName.charAt(0).toUpperCase()}
+        <div className="p-4 border-t border-base-content/10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="avatar placeholder">
+              <div className="w-10 h-10 rounded-full bg-primary text-primary-content">
+                <span className="text-sm font-bold">{session.fullName.charAt(0)}</span>
+              </div>
             </div>
-            <div className={styles.adminDetails}>
-              <span className={styles.adminName}>{session.fullName}</span>
-              <span className={styles.adminEmail}>{session.email}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm text-base-content truncate">{session.fullName}</p>
+              <p className="text-xs text-base-content/60 truncate">{session.email}</p>
             </div>
           </div>
-          <button className={styles.logoutBtn} onClick={onLogout} disabled={isLoggingOut}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
+          <button 
+            className="btn btn-error btn-outline btn-sm w-full gap-2"
+            onClick={onLogout}
+            disabled={isLoggingOut}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             {isLoggingOut ? "Signing out..." : "Sign Out"}
           </button>
@@ -200,342 +189,325 @@ export default function DashboardClient({ session, data }: DashboardProps) {
       </aside>
 
       {/* Main Content */}
-      <main className={styles.main}>
-        <header className={styles.header}>
-          <div>
-            <h1 className={styles.pageTitle}>
-              {activeTab === "overview" && "Dashboard Overview"}
-              {activeTab === "organisations" && "Manage Organisations"}
-              {activeTab === "logs" && "Activity Logs"}
-            </h1>
-            <p className={styles.pageSubtitle}>
-              {activeTab === "overview" && "Platform statistics and recent activity"}
-              {activeTab === "organisations" && "Review and manage organisation registrations"}
-              {activeTab === "logs" && "Track all administrative actions"}
-            </p>
-          </div>
-          <div className={styles.headerActions}>
-            <div className={styles.liveIndicator}>
-              <span className={styles.liveDot}></span>
-              System Operational
+      <main className="flex-1 overflow-auto">
+        <header className="sticky top-0 z-40 bg-base-100/80 backdrop-blur-lg border-b border-base-content/10 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-base-content">
+                {activeTab === "overview" && "Dashboard Overview"}
+                {activeTab === "organisations" && "Manage Organisations"}
+                {activeTab === "logs" && "Activity Logs"}
+              </h1>
+              <p className="text-sm text-base-content/60">
+                {activeTab === "overview" && "Platform statistics and recent activity"}
+                {activeTab === "organisations" && "Review and manage organisation registrations"}
+                {activeTab === "logs" && "Track all administrative actions"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="badge badge-success badge-outline gap-2">
+                <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                System Operational
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Overview Tab */}
-        {activeTab === "overview" && (
-          <div className={styles.content}>
-            {/* Stats Grid */}
-            <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #3b82f6, #1d4ed8)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                </div>
-                <div className={styles.statInfo}>
-                  <span className={styles.statValue}>{data.stats.totalOrganisations}</span>
-                  <span className={styles.statLabel}>Total Organisations</span>
-                </div>
-              </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                </div>
-                <div className={styles.statInfo}>
-                  <span className={styles.statValue}>{data.stats.pendingOrganisations}</span>
-                  <span className={styles.statLabel}>Pending Approval</span>
-                </div>
-              </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
-                  </svg>
-                </div>
-                <div className={styles.statInfo}>
-                  <span className={styles.statValue}>{data.stats.approvedOrganisations}</span>
-                  <span className={styles.statLabel}>Approved</span>
-                </div>
-              </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <line x1="19" y1="8" x2="19" y2="14"/>
-                    <line x1="22" y1="11" x2="16" y2="11"/>
-                  </svg>
-                </div>
-                <div className={styles.statInfo}>
-                  <span className={styles.statValue}>{data.stats.totalMembers}</span>
-                  <span className={styles.statLabel}>Total Members</span>
-                </div>
-              </div>
-
-              <div className={styles.statCard}>
-                <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #ec4899, #be185d)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 12l2 2 4-4"/>
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  </svg>
-                </div>
-                <div className={styles.statInfo}>
-                  <span className={styles.statValue}>{data.stats.totalElections}</span>
-                  <span className={styles.statLabel}>Total Elections</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Organisations */}
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>Recent Organisations</h2>
-                <button className={styles.viewAllBtn} onClick={() => setActiveTab("organisations")}>
-                  View All
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                    <polyline points="12 5 19 12 12 19"/>
-                  </svg>
-                </button>
-              </div>
-              <div className={styles.tableWrapper}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Organisation</th>
-                      <th>Type</th>
-                      <th>Members</th>
-                      <th>Org Code</th>
-                      <th>Status</th>
-                      <th>Created</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.recentOrganisations.map((org) => (
-                      <tr key={org.id}>
-                        <td>
-                          <div className={styles.orgCell}>
-                            <span className={styles.orgName}>{org.name}</span>
-                            <span className={styles.orgEmail}>{org.email}</span>
-                          </div>
-                        </td>
-                        <td>{org.type || "—"}</td>
-                        <td>{org._count.members}</td>
-                        <td>{org.orgCode || "—"}</td>
-                        <td>
-                          <span className={getStatusBadge(org.status)}>{org.status}</span>
-                        </td>
-                        <td>{formatDate(org.createdAt)}</td>
-                        <td>
-                          <div className={styles.actionBtns}>
-                            <Link href={`/superadmin/dashboard/org/${org.id}`} className={styles.viewDetailsBtn}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                              </svg>
-                              View Details
-                            </Link>
-                            {org.status === "PENDING" && (
-                              <>
-                                <button className={styles.approveBtn} onClick={() => onApprove(org.id)}>
-                                  Approve
-                                </button>
-                                <button className={styles.rejectBtn} onClick={() => onReject(org.id)}>
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            {!org.orgCode && (
-                              <button className={styles.generateBtn} onClick={() => onGenerateCode(org.id)}>
-                                Generate Code
-                              </button>
-                            )}
-                            <button 
-                              className={styles.deleteBtn} 
-                              onClick={() => onDelete(org.id, org.name)}
-                              title="Delete organisation"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                              </svg>
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {data.recentOrganisations.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className={styles.emptyState}>No organisations yet</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Organisations Tab */}
-        {activeTab === "organisations" && (
-          <div className={styles.content}>
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>All Organisations</h2>
-              </div>
-              <div className={styles.tableWrapper}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Organisation</th>
-                      <th>Type</th>
-                      <th>Members</th>
-                      <th>Elections</th>
-                      <th>Org Code</th>
-                      <th>Status</th>
-                      <th>Created</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.recentOrganisations.map((org) => (
-                      <tr key={org.id}>
-                        <td>
-                          <div className={styles.orgCell}>
-                            <span className={styles.orgName}>{org.name}</span>
-                            <span className={styles.orgEmail}>{org.email}</span>
-                          </div>
-                        </td>
-                        <td>{org.type || "—"}</td>
-                        <td>{org._count.members}</td>
-                        <td>{org._count.elections}</td>
-                        <td>{org.orgCode || "—"}</td>
-                        <td>
-                          <span className={getStatusBadge(org.status)}>{org.status}</span>
-                        </td>
-                        <td>{formatDate(org.createdAt)}</td>
-                        <td>
-                          <div className={styles.actionBtns}>
-                            <Link href={`/superadmin/dashboard/org/${org.id}`} className={styles.viewDetailsBtn}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                              </svg>
-                              View Details
-                            </Link>
-                            {org.status === "PENDING" && (
-                              <>
-                                <button className={styles.approveBtn} onClick={() => onApprove(org.id)}>
-                                  Approve
-                                </button>
-                                <button className={styles.rejectBtn} onClick={() => onReject(org.id)}>
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            {!org.orgCode && (
-                              <button className={styles.generateBtn} onClick={() => onGenerateCode(org.id)}>
-                                Generate Code
-                              </button>
-                            )}
-                            <button 
-                              className={styles.deleteBtn} 
-                              onClick={() => onDelete(org.id, org.name)}
-                              title="Delete organisation"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                              </svg>
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {data.recentOrganisations.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className={styles.emptyState}>No organisations yet</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Logs Tab */}
-        {activeTab === "logs" && (
-          <div className={styles.content}>
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>Recent Activity</h2>
-              </div>
-              <div className={styles.logsList}>
-                {data.recentLogs.map((log) => (
-                  <div key={log.id} className={styles.logItem}>
-                    <div className={styles.logIcon}>
-                      {log.action.includes("LOGIN") && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                          <polyline points="10 17 15 12 10 7"/>
-                          <line x1="15" y1="12" x2="3" y2="12"/>
-                        </svg>
-                      )}
-                      {log.action.includes("APPROVE") && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      )}
-                      {log.action.includes("REJECT") && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="6" x2="6" y2="18"/>
-                          <line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                      )}
-                      {log.action === "LOGOUT" && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                          <polyline points="16 17 21 12 16 7"/>
-                          <line x1="21" y1="12" x2="9" y2="12"/>
-                        </svg>
-                      )}
-                    </div>
-                    <div className={styles.logContent}>
-                      <span className={styles.logAction}>{log.action.replace(/_/g, " ")}</span>
-                      <span className={styles.logDetails}>
-                        by {log.admin.fullName} • {formatDate(log.createdAt)}
-                      </span>
-                      {log.details && <span className={styles.logExtra}>{log.details}</span>}
-                    </div>
-                    {log.ipAddress && (
-                      <span className={styles.logIp}>{log.ipAddress}</span>
-                    )}
+        <div className="p-8">
+          {/* Overview Tab */}
+          {activeTab === "overview" && (
+            <>
+              {/* Stats Grid */}
+              <div className="stats stats-vertical lg:stats-horizontal shadow-xl w-full mb-8 bg-base-100">
+                <div className="stat">
+                  <div className="stat-figure text-primary">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
                   </div>
-                ))}
-                {data.recentLogs.length === 0 && (
-                  <div className={styles.emptyState}>No activity logs yet</div>
-                )}
+                  <div className="stat-title">Total Organisations</div>
+                  <div className="stat-value text-primary">{data.stats.totalOrganisations}</div>
+                  <div className="stat-desc">{data.stats.approvedOrganisations} approved</div>
+                </div>
+
+                <div className="stat">
+                  <div className="stat-figure text-warning">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="stat-title">Pending Approval</div>
+                  <div className="stat-value text-warning">{data.stats.pendingOrganisations}</div>
+                  <div className="stat-desc">Awaiting review</div>
+                </div>
+
+                <div className="stat">
+                  <div className="stat-figure text-success">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div className="stat-title">Total Members</div>
+                  <div className="stat-value text-success">{data.stats.totalMembers}</div>
+                  <div className="stat-desc">Across all orgs</div>
+                </div>
+
+                <div className="stat">
+                  <div className="stat-figure text-secondary">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="stat-title">Total Elections</div>
+                  <div className="stat-value text-secondary">{data.stats.totalElections}</div>
+                  <div className="stat-desc">All time</div>
+                </div>
+              </div>
+
+              {/* Recent Organisations Card */}
+              <div className="card bg-base-100 shadow-xl">
+                <div className="card-body">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="card-title">Recent Organisations</h2>
+                    <button 
+                      className="btn btn-ghost btn-sm gap-1"
+                      onClick={() => setActiveTab("organisations")}
+                    >
+                      View All
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="table table-zebra">
+                      <thead>
+                        <tr>
+                          <th>Organisation</th>
+                          <th>Type</th>
+                          <th>Members</th>
+                          <th>Org Code</th>
+                          <th>Status</th>
+                          <th>Created</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.recentOrganisations.slice(0, 5).map((org) => (
+                          <tr key={org.id}>
+                            <td>
+                              <div>
+                                <div className="font-bold">{org.name}</div>
+                                <div className="text-sm text-base-content/60">{org.email}</div>
+                              </div>
+                            </td>
+                            <td>{org.type || "—"}</td>
+                            <td>{org._count.members}</td>
+                            <td>
+                              {org.orgCode ? (
+                                <code className="bg-base-200 px-2 py-1 rounded text-xs">{org.orgCode}</code>
+                              ) : "—"}
+                            </td>
+                            <td>
+                              <span className={`badge ${getStatusBadge(org.status)}`}>{org.status}</span>
+                            </td>
+                            <td className="text-sm">{formatDate(org.createdAt)}</td>
+                            <td>
+                              <div className="flex flex-wrap gap-1">
+                                <Link 
+                                  href={`/superadmin/dashboard/org/${org.id}`}
+                                  className="btn btn-ghost btn-xs"
+                                >
+                                  View
+                                </Link>
+                                {org.status === "PENDING" && (
+                                  <>
+                                    <button className="btn btn-success btn-xs" onClick={() => onApprove(org.id)}>
+                                      Approve
+                                    </button>
+                                    <button className="btn btn-error btn-xs" onClick={() => onReject(org.id)}>
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                                {!org.orgCode && (
+                                  <button className="btn btn-info btn-xs" onClick={() => onGenerateCode(org.id)}>
+                                    Gen Code
+                                  </button>
+                                )}
+                                <button 
+                                  className="btn btn-error btn-outline btn-xs"
+                                  onClick={() => onDelete(org.id, org.name)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {data.recentOrganisations.length === 0 && (
+                          <tr>
+                            <td colSpan={7} className="text-center py-8 text-base-content/60">
+                              No organisations yet
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Organisations Tab */}
+          {activeTab === "organisations" && (
+            <div className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title mb-4">All Organisations</h2>
+                <div className="overflow-x-auto">
+                  <table className="table table-zebra">
+                    <thead>
+                      <tr>
+                        <th>Organisation</th>
+                        <th>Type</th>
+                        <th>Members</th>
+                        <th>Elections</th>
+                        <th>Org Code</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.recentOrganisations.map((org) => (
+                        <tr key={org.id}>
+                          <td>
+                            <div>
+                              <div className="font-bold">{org.name}</div>
+                              <div className="text-sm text-base-content/60">{org.email}</div>
+                            </div>
+                          </td>
+                          <td>{org.type || "—"}</td>
+                          <td>{org._count.members}</td>
+                          <td>{org._count.elections}</td>
+                          <td>
+                            {org.orgCode ? (
+                              <code className="bg-base-200 px-2 py-1 rounded text-xs">{org.orgCode}</code>
+                            ) : "—"}
+                          </td>
+                          <td>
+                            <span className={`badge ${getStatusBadge(org.status)}`}>{org.status}</span>
+                          </td>
+                          <td className="text-sm">{formatDate(org.createdAt)}</td>
+                          <td>
+                            <div className="flex flex-wrap gap-1">
+                              <Link 
+                                href={`/superadmin/dashboard/org/${org.id}`}
+                                className="btn btn-ghost btn-xs"
+                              >
+                                View
+                              </Link>
+                              {org.status === "PENDING" && (
+                                <>
+                                  <button className="btn btn-success btn-xs" onClick={() => onApprove(org.id)}>
+                                    Approve
+                                  </button>
+                                  <button className="btn btn-error btn-xs" onClick={() => onReject(org.id)}>
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                              {!org.orgCode && (
+                                <button className="btn btn-info btn-xs" onClick={() => onGenerateCode(org.id)}>
+                                  Gen Code
+                                </button>
+                              )}
+                              <button 
+                                className="btn btn-error btn-outline btn-xs"
+                                onClick={() => onDelete(org.id, org.name)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {data.recentOrganisations.length === 0 && (
+                        <tr>
+                          <td colSpan={8} className="text-center py-8 text-base-content/60">
+                            No organisations yet
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Logs Tab */}
+          {activeTab === "logs" && (
+            <div className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title mb-4">Recent Activity</h2>
+                <div className="space-y-3">
+                  {data.recentLogs.map((log) => (
+                    <div key={log.id} className="flex items-start gap-4 p-4 rounded-xl bg-base-200 hover:bg-base-300 transition-colors">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        log.action.includes("LOGIN") ? "bg-info/20 text-info" :
+                        log.action.includes("APPROVE") ? "bg-success/20 text-success" :
+                        log.action.includes("REJECT") ? "bg-error/20 text-error" :
+                        "bg-base-300 text-base-content/60"
+                      }`}>
+                        {log.action.includes("LOGIN") && (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                          </svg>
+                        )}
+                        {log.action.includes("APPROVE") && (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                        {log.action.includes("REJECT") && (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                        {log.action === "LOGOUT" && (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-base-content">{log.action.replace(/_/g, " ")}</p>
+                        <p className="text-sm text-base-content/60">
+                          by {log.admin.fullName} • {formatDate(log.createdAt)}
+                        </p>
+                        {log.details && (
+                          <p className="text-sm text-base-content/40 mt-1">{log.details}</p>
+                        )}
+                      </div>
+                      {log.ipAddress && (
+                        <code className="text-xs bg-base-300 px-2 py-1 rounded">{log.ipAddress}</code>
+                      )}
+                    </div>
+                  ))}
+                  {data.recentLogs.length === 0 && (
+                    <div className="text-center py-12 text-base-content/60">
+                      No activity logs yet
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
 }
-

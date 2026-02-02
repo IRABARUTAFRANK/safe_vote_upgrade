@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { login, validateCode, createAccount } from './actions';
-import styles from '../../styles/auth.module.css';
 
 type Step = 'code' | 'login' | 'register';
 
@@ -26,7 +25,6 @@ export default function VoteLoginPage() {
     setMessage('');
   }
 
-  // Step 1: Validate voter code
   async function handleContinueWithCode(e: React.FormEvent) {
     e.preventDefault();
     clearMessage();
@@ -42,7 +40,7 @@ export default function VoteLoginPage() {
       formData.append('memberCode', code);
       const result = await validateCode(formData);
       if (result.success && result.memberCode) {
-        setVoterCode(result.memberCode); // keep normalized code
+        setVoterCode(result.memberCode);
         if (result.hasAccount) {
           setStep('login');
         } else {
@@ -60,7 +58,6 @@ export default function VoteLoginPage() {
     }
   }
 
-  // Step 2a: Login with password
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     clearMessage();
@@ -95,7 +92,6 @@ export default function VoteLoginPage() {
     }
   }
 
-  // Step 2b: Register (create account)
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     clearMessage();
@@ -156,255 +152,300 @@ export default function VoteLoginPage() {
   }
 
   return (
-    <div className={styles.authContainer}>
-      <div className={styles.authWrapper}>
-        <div className={styles.brandPanel}>
-          <div className={styles.brandContent}>
-            <div className={styles.brandLogo}>
-              <div className={styles.brandMark}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 12l2 2 4-4"/>
-                  <path d="M12 3c-1.2 0-2.4.6-3 1.7A3.6 3.6 0 0 0 4.6 9c-1 .6-1.7 1.8-1.7 3s.7 2.4 1.7 3c-.3 1.5.2 3 1.5 3.8a3.6 3.6 0 0 0 4.9 1.5c.6 1.1 1.8 1.7 3 1.7s2.4-.6 3-1.7a3.6 3.6 0 0 0 4.4-4.3c1-.6 1.7-1.8 1.7-3s-.7-2.4-1.7-3c.3-1.5-.2-3-1.5-3.8a3.6 3.6 0 0 0-4.9-1.5A3.6 3.6 0 0 0 12 3z"/>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex">
+      {/* Left Panel - Brand */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/20 to-secondary/20 p-12 flex-col justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="text-2xl font-bold text-white">SafeVote</span>
+          </div>
+          
+          <h2 className="text-4xl font-bold text-white mb-4">Your Vote Matters.</h2>
+          <p className="text-lg text-white/70 mb-8 max-w-md">
+            Sign in with the voter code from your organisation to access your ballot and elections.
+          </p>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-white/80">
+              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
               </div>
-              <span className={styles.brandTitle}>SafeVote</span>
+              <span>Use the code your organisation gave you</span>
             </div>
-            <h2 className={styles.brandHeadline}>Your Vote Matters.</h2>
-            <p className={styles.brandDescription}>
-              Sign in with the voter code from your organisation to access your ballot and elections.
-            </p>
-            <div className={styles.brandFeatures}>
-              <div className={styles.brandFeature}>
-                <div className={styles.brandFeatureIcon}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                  </svg>
-                </div>
-                <span>Use the code your organisation gave you</span>
+            <div className="flex items-center gap-3 text-white/80">
+              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
               </div>
-              <div className={styles.brandFeature}>
-                <div className={styles.brandFeatureIcon}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
-                  </svg>
-                </div>
-                <span>First time? Create your account with that code</span>
+              <span>First time? Create your account with that code</span>
+            </div>
+            <div className="flex items-center gap-3 text-white/80">
+              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
               </div>
+              <span>Your vote is private & anonymous</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className={styles.formPanel}>
-          <div className={styles.formContainer}>
-            <Link href="/" className={styles.backLink}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"/>
-                <polyline points="12 19 5 12 12 5"/>
+      {/* Right Panel - Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Back to Home
-            </Link>
+            </div>
+            <span className="text-xl font-bold text-white">SafeVote</span>
+          </div>
 
-            <div className={styles.mobileLogo}>
-              <div className={styles.mobileLogoMark}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 12l2 2 4-4"/>
-                  <path d="M12 3c-1.2 0-2.4.6-3 1.7A3.6 3.6 0 0 0 4.6 9c-1 .6-1.7 1.8-1.7 3s.7 2.4 1.7 3c-.3 1.5.2 3 1.5 3.8a3.6 3.6 0 0 0 4.9 1.5c.6 1.1 1.8 1.7 3 1.7s2.4-.6 3-1.7a3.6 3.6 0 0 0 4.4-4.3c1-.6 1.7-1.8 1.7-3s-.7-2.4-1.7-3c.3-1.5-.2-3-1.5-3.8a3.6 3.6 0 0 0-4.9-1.5A3.6 3.6 0 0 0 12 3z"/>
-                </svg>
+          <Link href="/" className="btn btn-ghost btn-sm mb-6 gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Home
+          </Link>
+
+          {/* Step 1: Enter voter code */}
+          {step === 'code' && (
+            <div className="card bg-base-100 shadow-2xl">
+              <div className="card-body">
+                <h1 className="text-2xl font-bold text-base-content mb-2">Voter Sign In</h1>
+                <p className="text-base-content/60 mb-6">
+                  Enter the voter code provided by your organisation.
+                </p>
+                
+                <form onSubmit={handleContinueWithCode}>
+                  <div className="form-control mb-4">
+                    <label className="label">
+                      <span className="label-text font-medium">Voter Code</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered input-lg text-center tracking-widest font-mono uppercase"
+                      value={voterCode}
+                      onChange={e => setVoterCode(e.target.value)}
+                      placeholder="e.g. AB123"
+                      autoComplete="off"
+                      autoFocus
+                    />
+                    <label className="label">
+                      <span className="label-text-alt text-base-content/60">
+                        Spaces are ignored. Use the code from your election invite.
+                      </span>
+                    </label>
+                  </div>
+
+                  {message && (
+                    <div className={`alert ${messageType === 'error' ? 'alert-error' : 'alert-success'} mb-4`}>
+                      <span>{message}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className={`btn btn-primary btn-lg w-full ${isLoading ? 'loading' : ''}`} disabled={isLoading}>
+                    {isLoading ? 'Checking...' : (
+                      <>
+                        Continue
+                        <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
-              <span className={styles.mobileLogoTitle}>SafeVote</span>
             </div>
+          )}
 
-            {/* Step 1: Enter voter code */}
-            {step === 'code' && (
-              <>
-                <div className={styles.formHeader}>
-                  <h1 className={styles.formTitle}>Voter sign in</h1>
-                  <p className={styles.formSubtitle}>
-                    Enter the voter code provided by your organisation (e.g. 5-character code).
-                  </p>
-                </div>
-                <div className={styles.formCard}>
-                  <form onSubmit={handleContinueWithCode}>
-                    <div className={styles.fieldGroup}>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>Voter code</label>
-                        <input
-                          type="text"
-                          className={styles.fieldInput}
-                          value={voterCode}
-                          onChange={e => setVoterCode(e.target.value)}
-                          placeholder="e.g. AB123"
-                          autoComplete="off"
-                          autoFocus
-                        />
-                        <p className={styles.helpText}>Spaces are ignored. Use the code from your election invite.</p>
-                      </div>
-                    </div>
-                    {message && (
-                      <div className={`${styles.message} ${messageType === 'error' ? styles.messageError : styles.messageSuccess}`}>
-                        {message}
-                      </div>
-                    )}
-                    <button type="submit" className={styles.submitBtn} disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <div className={styles.spinner}></div>
-                          Checking...
-                        </>
-                      ) : (
-                        <>
-                          Continue
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                            <polyline points="12 5 19 12 12 19"/>
+          {/* Step 2a: Login with password */}
+          {step === 'login' && (
+            <div className="card bg-base-100 shadow-2xl">
+              <div className="card-body">
+                <h1 className="text-2xl font-bold text-base-content mb-2">Enter Your Password</h1>
+                <p className="text-base-content/60 mb-1">Voter code:</p>
+                <code className="bg-base-200 px-3 py-1 rounded-lg text-lg font-mono tracking-widest mb-6">{voterCode}</code>
+                
+                <form onSubmit={handleLogin}>
+                  <div className="form-control mb-4">
+                    <label className="label">
+                      <span className="label-text font-medium">Password</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        className="input input-bordered w-full pr-12"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        autoFocus
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn-ghost btn-sm absolute right-1 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                           </svg>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </div>
-              </>
-            )}
-
-            {/* Step 2a: Enter password (existing account) */}
-            {step === 'login' && (
-              <>
-                <div className={styles.formHeader}>
-                  <h1 className={styles.formTitle}>Enter your password</h1>
-                  <p className={styles.formSubtitle}>
-                    Voter code: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}>{voterCode}</strong>
-                  </p>
-                </div>
-                <div className={styles.formCard}>
-                  <form onSubmit={handleLogin}>
-                    <div className={styles.fieldGroup}>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>Password</label>
-                        <div className={styles.passwordWrapper}>
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            className={styles.fieldInput}
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            placeholder="Enter your password"
-                            style={{ paddingRight: '2.5rem' }}
-                            autoFocus
-                          />
-                          <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
-                            {showPassword ? (
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                            ) : (
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                            )}
-                          </button>
-                        </div>
-                      </div>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
                     </div>
-                    {message && (
-                      <div className={`${styles.message} ${messageType === 'error' ? styles.messageError : styles.messageSuccess}`}>
-                        {message}
-                      </div>
-                    )}
-                    <button type="submit" className={styles.submitBtn} disabled={isLoading}>
-                      {isLoading ? <><div className={styles.spinner}></div> Signing in...</> : <>Sign in</>}
-                    </button>
-                    <button type="button" onClick={handleUseDifferentCode} className={styles.formFooterLink} style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '0.9rem' }}>
-                      Use a different voter code
-                    </button>
-                  </form>
-                </div>
-              </>
-            )}
+                  </div>
 
-            {/* Step 2b: Create account (new voter) */}
-            {step === 'register' && (
-              <>
-                <div className={styles.formHeader}>
-                  <h1 className={styles.formTitle}>Create your account</h1>
-                  <p className={styles.formSubtitle}>
-                    Voter code: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}>{voterCode}</strong> — set your name and password.
-                  </p>
-                </div>
-                <div className={styles.formCard}>
-                  <form onSubmit={handleRegister}>
-                    <div className={styles.fieldGroup}>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>Full name *</label>
-                        <input
-                          type="text"
-                          className={styles.fieldInput}
-                          value={fullName}
-                          onChange={e => setFullName(e.target.value)}
-                          placeholder="Your full name"
-                          autoComplete="name"
-                          autoFocus
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>Email (optional)</label>
-                        <input
-                          type="email"
-                          className={styles.fieldInput}
-                          value={email}
-                          onChange={e => setEmail(e.target.value)}
-                          placeholder="you@example.com"
-                          autoComplete="email"
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>Password *</label>
-                        <div className={styles.passwordWrapper}>
-                          <input
-                            type={showRegisterPassword ? 'text' : 'password'}
-                            className={styles.fieldInput}
-                            value={registerPassword}
-                            onChange={e => setRegisterPassword(e.target.value)}
-                            placeholder="At least 8 chars, with upper, lower, number, special"
-                            style={{ paddingRight: '2.5rem' }}
-                          />
-                          <button type="button" className={styles.passwordToggle} onClick={() => setShowRegisterPassword(!showRegisterPassword)} tabIndex={-1}>
-                            {showRegisterPassword ? (
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                            ) : (
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                            )}
-                          </button>
-                        </div>
-                        <p className={styles.helpText}>Min 8 characters, with uppercase, lowercase, number and special character.</p>
-                      </div>
+                  {message && (
+                    <div className={`alert ${messageType === 'error' ? 'alert-error' : 'alert-success'} mb-4`}>
+                      <span>{message}</span>
                     </div>
-                    {message && (
-                      <div className={`${styles.message} ${messageType === 'error' ? styles.messageError : styles.messageSuccess}`}>
-                        {message}
-                      </div>
-                    )}
-                    <button type="submit" className={styles.submitBtn} disabled={isLoading}>
-                      {isLoading ? <><div className={styles.spinner}></div> Creating account...</> : <>Create account & sign in</>}
-                    </button>
-                    <button type="button" onClick={handleUseDifferentCode} className={styles.formFooterLink} style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '0.9rem' }}>
-                      Use a different voter code
-                    </button>
-                  </form>
-                </div>
-              </>
-            )}
+                  )}
 
-            <div className={styles.formFooter}>
-              <p className={styles.formFooterText}>
-                Organisation admin? <Link href="/organisation/login" className={styles.formFooterLink}>Organisation login</Link>
-              </p>
-              <p className={styles.formFooterText}>
-                Want to run elections? <Link href="/register" className={styles.formFooterLink}>Register your organisation</Link>
-              </p>
+                  <button type="submit" className={`btn btn-primary btn-lg w-full ${isLoading ? 'loading' : ''}`} disabled={isLoading}>
+                    {isLoading ? 'Signing in...' : 'Sign In'}
+                  </button>
+
+                  <button 
+                    type="button" 
+                    onClick={handleUseDifferentCode}
+                    className="btn btn-ghost btn-sm w-full mt-4"
+                  >
+                    Use a different voter code
+                  </button>
+                </form>
+              </div>
             </div>
-            <div className={styles.securityBadge}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Your vote is private & anonymous
+          )}
+
+          {/* Step 2b: Create account */}
+          {step === 'register' && (
+            <div className="card bg-base-100 shadow-2xl">
+              <div className="card-body">
+                <h1 className="text-2xl font-bold text-base-content mb-2">Create Your Account</h1>
+                <p className="text-base-content/60 mb-1">Voter code:</p>
+                <code className="bg-base-200 px-3 py-1 rounded-lg text-lg font-mono tracking-widest mb-6">{voterCode}</code>
+                
+                <form onSubmit={handleRegister}>
+                  <div className="form-control mb-4">
+                    <label className="label">
+                      <span className="label-text font-medium">Full Name *</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={fullName}
+                      onChange={e => setFullName(e.target.value)}
+                      placeholder="Your full name"
+                      autoComplete="name"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="form-control mb-4">
+                    <label className="label">
+                      <span className="label-text font-medium">Email (optional)</span>
+                    </label>
+                    <input
+                      type="email"
+                      className="input input-bordered"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
+                  </div>
+
+                  <div className="form-control mb-4">
+                    <label className="label">
+                      <span className="label-text font-medium">Password *</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showRegisterPassword ? 'text' : 'password'}
+                        className="input input-bordered w-full pr-12"
+                        value={registerPassword}
+                        onChange={e => setRegisterPassword(e.target.value)}
+                        placeholder="Create a strong password"
+                      />
+                      <button 
+                        type="button" 
+                        className="btn btn-ghost btn-sm absolute right-1 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                      >
+                        {showRegisterPassword ? (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    <label className="label">
+                      <span className="label-text-alt text-base-content/60">
+                        Min 8 characters with uppercase, lowercase, number & special character.
+                      </span>
+                    </label>
+                  </div>
+
+                  {message && (
+                    <div className={`alert ${messageType === 'error' ? 'alert-error' : 'alert-success'} mb-4`}>
+                      <span>{message}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className={`btn btn-primary btn-lg w-full ${isLoading ? 'loading' : ''}`} disabled={isLoading}>
+                    {isLoading ? 'Creating account...' : 'Create Account & Sign In'}
+                  </button>
+
+                  <button 
+                    type="button" 
+                    onClick={handleUseDifferentCode}
+                    className="btn btn-ghost btn-sm w-full mt-4"
+                  >
+                    Use a different voter code
+                  </button>
+                </form>
+              </div>
             </div>
+          )}
+
+          {/* Footer Links */}
+          <div className="mt-6 text-center space-y-2">
+            <p className="text-base-content/60 text-sm">
+              Organisation admin? <Link href="/organisation/login" className="link link-primary">Organisation login</Link>
+            </p>
+            <p className="text-base-content/60 text-sm">
+              Want to run elections? <Link href="/register" className="link link-primary">Register your organisation</Link>
+            </p>
+          </div>
+
+          {/* Security Badge */}
+          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-base-content/50">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            Your vote is private & anonymous
           </div>
         </div>
       </div>

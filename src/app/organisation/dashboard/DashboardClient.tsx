@@ -3,9 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import styles from "./dashboard.module.css";
 import { logoutOrgAdminAction } from "./actions";
-import ThemeToggle from "../../components/ThemeToggle";
 import StatusDistributionChart from "./components/StatusDistributionChart";
 import VotesTimelineChart from "./components/VotesTimelineChart";
 import ElectionPerformanceChart from "./components/ElectionPerformanceChart";
@@ -76,255 +74,305 @@ export default function DashboardClient({ session, data, elections }: DashboardC
     });
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "DRAFT": return "badge-ghost";
+      case "ACTIVE": return "badge-success";
+      case "CLOSED": return "badge-info";
+      case "CANCELLED": return "badge-error";
+      default: return "badge-ghost";
+    }
+  };
+
   return (
-    <div className={styles.container}>
+    <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300">
       {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div>
-            <h1 className={styles.pageTitle}>Organization Dashboard</h1>
-            <p className={styles.pageSubtitle}>Welcome back, {session.fullName}</p>
+      <div className="navbar bg-base-100/80 backdrop-blur-lg sticky top-0 z-50 border-b border-base-content/10 px-4 lg:px-8">
+        <div className="flex-1 gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
           </div>
-          <div className={styles.headerActions}>
-            <ThemeToggle />
-            <button className={styles.logoutBtn} onClick={handleLogout}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                <polyline points="16 17 21 12 16 7"/>
-                <line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-              Sign Out
-            </button>
+          <div>
+            <h1 className="text-lg font-bold text-base-content">Organization Dashboard</h1>
+            <p className="text-xs text-base-content/60">Welcome back, {session.fullName}</p>
           </div>
         </div>
-      </header>
+        <div className="flex-none gap-2">
+          <button className="btn btn-ghost btn-sm text-error" onClick={handleLogout}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Sign Out
+          </button>
+        </div>
+      </div>
 
-      <div className={styles.content}>
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Organization Info Card */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>{data.organisation?.name || session.orgName}</h2>
-            <span className={styles.orgCode}>{data.organisation?.orgCode || "—"}</span>
-          </div>
-          <div className={styles.orgInfo}>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Email</span>
-              <span className={styles.infoValue}>{data.organisation?.email || session.email}</span>
-            </div>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Type</span>
-              <span className={styles.infoValue}>{data.organisation?.type || "—"}</span>
-            </div>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Registered</span>
-              <span className={styles.infoValue}>
-                {data.organisation?.createdAt ? formatDate(data.organisation.createdAt) : "—"}
-              </span>
+        <div className="card bg-base-100 shadow-xl mb-6">
+          <div className="card-body">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="avatar placeholder">
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary to-secondary text-white">
+                    <span className="text-2xl font-bold">{(data.organisation?.name || session.orgName).charAt(0)}</span>
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-base-content">{data.organisation?.name || session.orgName}</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="badge badge-primary badge-outline">{data.organisation?.orgCode || "—"}</span>
+                    <span className={`badge ${data.organisation?.status === "APPROVED" ? "badge-success" : "badge-warning"}`}>
+                      {data.organisation?.status || "PENDING"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-6 text-sm">
+                <div>
+                  <span className="text-base-content/60 block">Email</span>
+                  <span className="font-medium">{data.organisation?.email || session.email}</span>
+                </div>
+                <div>
+                  <span className="text-base-content/60 block">Type</span>
+                  <span className="font-medium">{data.organisation?.type || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-base-content/60 block">Registered</span>
+                  <span className="font-medium">{data.organisation?.createdAt ? formatDate(data.organisation.createdAt) : "—"}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className={styles.statsGrid}>
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #3b82f6, #1d4ed8)" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        <div className="stats stats-vertical lg:stats-horizontal shadow-xl w-full mb-6 bg-base-100">
+          <div className="stat">
+            <div className="stat-figure text-primary">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <div className={styles.statInfo}>
-              <span className={styles.statValue}>{data.stats.totalMembers}</span>
-              <span className={styles.statLabel}>Total Members</span>
-            </div>
+            <div className="stat-title">Total Members</div>
+            <div className="stat-value text-primary">{data.stats.totalMembers}</div>
+            <div className="stat-desc">Registered voters</div>
           </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 12l2 2 4-4"/>
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          
+          <div className="stat">
+            <div className="stat-figure text-success">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className={styles.statInfo}>
-              <span className={styles.statValue}>{data.stats.totalElections}</span>
-              <span className={styles.statLabel}>Total Elections</span>
-            </div>
+            <div className="stat-title">Total Elections</div>
+            <div className="stat-value text-success">{data.stats.totalElections}</div>
+            <div className="stat-desc">{data.stats.activeElections} active</div>
           </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
+          
+          <div className="stat">
+            <div className="stat-figure text-warning">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className={styles.statInfo}>
-              <span className={styles.statValue}>{data.stats.activeElections}</span>
-              <span className={styles.statLabel}>Active Elections</span>
-            </div>
+            <div className="stat-title">Active Elections</div>
+            <div className="stat-value text-warning">{data.stats.activeElections}</div>
+            <div className="stat-desc">In progress</div>
           </div>
-
-          <div className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: "linear-gradient(135deg, #8b5cf6, #7c3aed)" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 11l3 3L22 4"/>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          
+          <div className="stat">
+            <div className="stat-figure text-secondary">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <div className={styles.statInfo}>
-              <span className={styles.statValue}>{data.stats.totalVotes}</span>
-              <span className={styles.statLabel}>Total Votes Cast</span>
-            </div>
+            <div className="stat-title">Total Votes</div>
+            <div className="stat-value text-secondary">{data.stats.totalVotes}</div>
+            <div className="stat-desc">Ballots cast</div>
           </div>
         </div>
 
-        {/* Charts Section */}
-        <div className={styles.chartsGrid}>
-          <div className={styles.chartCard}>
-            <div className={styles.chartHeader}>
-              <h3 className={styles.chartTitle}>Election Status Distribution</h3>
-              <p className={styles.chartSubtitle}>Overview of election statuses</p>
-            </div>
-            <div className={styles.chartContent}>
-              <StatusDistributionChart data={data.chartData.electionStatusDistribution} />
+        {/* Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+              <h3 className="card-title text-base">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                </svg>
+                Election Status Distribution
+              </h3>
+              <p className="text-sm text-base-content/60 mb-2">Overview of election statuses</p>
+              <div className="h-64">
+                <StatusDistributionChart data={data.chartData.electionStatusDistribution} />
+              </div>
             </div>
           </div>
 
-          <div className={styles.chartCard}>
-            <div className={styles.chartHeader}>
-              <h3 className={styles.chartTitle}>Voting Activity (Last 30 Days)</h3>
-              <p className={styles.chartSubtitle}>Daily voting trends</p>
-            </div>
-            <div className={styles.chartContent}>
-              <VotesTimelineChart data={data.chartData.votesTimeline} />
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+              <h3 className="card-title text-base">
+                <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Voting Activity (Last 30 Days)
+              </h3>
+              <p className="text-sm text-base-content/60 mb-2">Daily voting trends</p>
+              <div className="h-64">
+                <VotesTimelineChart data={data.chartData.votesTimeline} />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Election Performance Chart */}
         {data.chartData.electionPerformance.length > 0 && (
-          <div className={styles.chartCard}>
-            <div className={styles.chartHeader}>
-              <h3 className={styles.chartTitle}>Election Performance</h3>
-              <p className={styles.chartSubtitle}>Votes and positions by election</p>
-            </div>
-            <div className={styles.chartContent}>
-              <ElectionPerformanceChart data={data.chartData.electionPerformance} />
+          <div className="card bg-base-100 shadow-xl mb-6">
+            <div className="card-body">
+              <h3 className="card-title text-base">
+                <svg className="w-5 h-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Election Performance
+              </h3>
+              <p className="text-sm text-base-content/60 mb-2">Votes and positions by election</p>
+              <div className="h-64">
+                <ElectionPerformanceChart data={data.chartData.electionPerformance} />
+              </div>
             </div>
           </div>
         )}
 
         {/* Quick Actions */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>Quick Actions</h2>
-          </div>
-          <div className={styles.actionsGrid}>
-            <Link href="/organisation/dashboard/elections/new" className={styles.actionBtn}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
+        <div className="card bg-base-100 shadow-xl mb-6">
+          <div className="card-body">
+            <h3 className="card-title text-base mb-4">
+              <svg className="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span>Create Election</span>
-            </Link>
-            <button className={styles.actionBtn} disabled>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <line x1="19" y1="8" x2="19" y2="14"/>
-                <line x1="22" y1="11" x2="16" y2="11"/>
-              </svg>
-              <span>Manage Members</span>
-              <span className={styles.comingSoon}>Coming Soon</span>
-            </button>
-            <button className={styles.actionBtn} disabled>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-              <span>View Reports</span>
-              <span className={styles.comingSoon}>Coming Soon</span>
-            </button>
+              Quick Actions
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Link href="/organisation/dashboard/elections/new" className="btn btn-primary btn-lg gap-2 justify-start h-auto py-4">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <div className="text-left">
+                  <div className="font-bold">Create Election</div>
+                  <div className="text-xs opacity-80 font-normal">Set up a new election</div>
+                </div>
+              </Link>
+              
+              <button className="btn btn-outline btn-lg gap-2 justify-start h-auto py-4" disabled>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <div className="text-left">
+                  <div className="font-bold">Manage Members</div>
+                  <div className="text-xs opacity-60 font-normal">Coming Soon</div>
+                </div>
+              </button>
+              
+              <button className="btn btn-outline btn-lg gap-2 justify-start h-auto py-4" disabled>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div className="text-left">
+                  <div className="font-bold">View Reports</div>
+                  <div className="text-xs opacity-60 font-normal">Coming Soon</div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Elections List */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>Recent Elections</h2>
-            {data.stats.totalElections > 5 && (
-              <Link href="/organisation/dashboard/elections" className={styles.viewAllLink}>
-                View All
-              </Link>
+        {/* Recent Elections */}
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="card-title text-base">
+                <svg className="w-5 h-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Recent Elections
+              </h3>
+              {data.stats.totalElections > 5 && (
+                <Link href="/organisation/dashboard/elections" className="btn btn-ghost btn-sm">
+                  View All
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+            </div>
+
+            {elections.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-base-200 flex items-center justify-center">
+                  <svg className="w-10 h-10 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-base-content/60 mb-2">No elections yet</h3>
+                <p className="text-base-content/40 mb-4">Create your first election to get started.</p>
+                <Link href="/organisation/dashboard/elections/new" className="btn btn-primary">
+                  Create Election
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="table table-zebra">
+                  <thead>
+                    <tr>
+                      <th>Election</th>
+                      <th>Status</th>
+                      <th>Positions</th>
+                      <th>Votes</th>
+                      <th>Dates</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {elections.map((election) => (
+                      <tr key={election.id} className="hover">
+                        <td>
+                          <div className="font-bold">{election.title}</div>
+                        </td>
+                        <td>
+                          <span className={`badge ${getStatusBadge(election.status)}`}>
+                            {election.status}
+                          </span>
+                        </td>
+                        <td>{election._count.positions}</td>
+                        <td>{election._count.ballots}</td>
+                        <td>
+                          <div className="text-sm">
+                            <div>{formatDate(election.startDate)}</div>
+                            <div className="text-base-content/60">to {formatDate(election.endDate)}</div>
+                          </div>
+                        </td>
+                        <td>
+                          <Link 
+                            href={`/organisation/dashboard/elections/${election.id}`}
+                            className="btn btn-ghost btn-sm"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-          {elections.length === 0 ? (
-            <div className={styles.emptyState}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <line x1="9" y1="3" x2="9" y2="21"/>
-              </svg>
-              <p>No elections created yet. Create your first election to get started.</p>
-              <Link href="/organisation/dashboard/elections/new" className={styles.createBtn}>
-                Create Election
-              </Link>
-            </div>
-          ) : (
-            <div className={styles.electionsList}>
-              {elections.map((election) => {
-                const getStatusColor = (status: string) => {
-                  switch (status) {
-                    case "DRAFT": return "#64748b";
-                    case "ACTIVE": return "#10b981";
-                    case "CLOSED": return "#3b82f6";
-                    case "CANCELLED": return "#ef4444";
-                    default: return "#64748b";
-                  }
-                };
-                const statusColor = getStatusColor(election.status);
-                return (
-                  <Link
-                    key={election.id}
-                    href={`/organisation/dashboard/elections/${election.id}`}
-                    className={styles.electionItem}
-                  >
-                    <div className={styles.electionInfo}>
-                      <h3 className={styles.electionTitle}>{election.title}</h3>
-                      <div className={styles.electionMeta}>
-                        <span
-                          className={styles.statusBadge}
-                          style={{
-                            backgroundColor: `${statusColor}20`,
-                            color: statusColor,
-                            borderColor: `${statusColor}40`,
-                          }}
-                        >
-                          {election.status}
-                        </span>
-                        <span className={styles.metaText}>
-                          {election._count.positions} position{election._count.positions !== 1 ? "s" : ""}
-                        </span>
-                        <span className={styles.metaText}>
-                          {election._count.ballots} vote{election._count.ballots !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                    </div>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"/>
-                    </svg>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
-

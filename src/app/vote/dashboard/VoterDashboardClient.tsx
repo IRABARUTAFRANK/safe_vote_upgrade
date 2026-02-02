@@ -12,7 +12,6 @@ import {
   getMyApplications,
   getAccountStatus,
 } from "./actions";
-import voterStyles from "./voter-dashboard.module.css";
 
 interface Election {
   id: string;
@@ -126,6 +125,7 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const [electionsResult, historyResult, appElectionsResult, myAppsResult, statusResult] = await Promise.all([
         getActiveElections(),
         getVotingHistory(),
@@ -136,6 +136,8 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
 
       if (electionsResult.success && electionsResult.data) {
         setElections(electionsResult.data);
+      } else if (!electionsResult.success) {
+        console.error("Elections fetch error:", electionsResult.error);
       }
       if (historyResult.success && historyResult.data) {
         setHistory(historyResult.data);
@@ -150,7 +152,8 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
         setAccountStatus(statusResult.data);
       }
     } catch (err) {
-      setError("Failed to load data");
+      console.error("Load data error:", err);
+      setError("Failed to load data. Please try refreshing.");
     } finally {
       setLoading(false);
     }
@@ -162,7 +165,6 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     return () => clearInterval(interval);
   }, [loadData]);
 
-  // Refresh when user returns to tab (e.g. after creating election elsewhere)
   useEffect(() => {
     const onFocus = () => loadData();
     if (typeof window !== "undefined") {
@@ -171,13 +173,11 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     }
   }, [loadData]);
 
-
   async function handleLogout() {
     await logoutVoterAction();
     router.push("/vote/login");
   }
 
-  // Voting handlers
   function handleStartVoting(election: Election) {
     setVotingElection(election);
     setSelectedVotes({});
@@ -240,7 +240,6 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     }
   }
 
-  // Application handlers
   function handleStartApplication(election: ApplicationElection) {
     setApplyingElection(election);
     setSelectedPosition("");
@@ -292,20 +291,22 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case "PENDING": return "#f59e0b";
-      case "APPROVED": return "#10b981";
-      case "REJECTED": return "#ef4444";
-      default: return "#64748b";
+      case "PENDING": return "badge-warning";
+      case "APPROVED": return "badge-success";
+      case "REJECTED": return "badge-error";
+      default: return "badge-ghost";
     }
   };
 
+  // Loading state
   if (loading && elections.length === 0 && applicationElections.length === 0 && history.length === 0) {
     return (
-      <div className={voterStyles.container}>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-          <div className={voterStyles.spinner}></div>
+      <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300 flex items-center justify-center">
+        <div className="text-center">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+          <p className="mt-4 text-base-content/70">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -319,265 +320,144 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     ).length;
 
     return (
-      <div className={voterStyles.container}>
-        <header className={voterStyles.header}>
-          <div className={voterStyles.headerContent}>
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <div style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
-              <div>
-                <h1 className={voterStyles.pageTitle} style={{ marginBottom: "0.25rem" }}>Cast Your Vote</h1>
-                <p className={voterStyles.pageSubtitle} style={{ color: "#94a3b8" }}>{votingElection.title}</p>
-              </div>
+      <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300">
+        {/* Voting Header */}
+        <div className="navbar bg-base-100/80 backdrop-blur-lg sticky top-0 z-50 border-b border-base-content/10">
+          <div className="flex-1 gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <svg className="w-6 h-6 text-primary-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-              <div style={{
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                backgroundColor: "var(--card-bg, #1e293b)",
-                border: "1px solid var(--border-color, #334155)",
-              }}>
-                <span style={{ color: "#94a3b8", fontSize: "0.875rem" }}>Progress: </span>
-                <span style={{ color: "#3b82f6", fontWeight: "600" }}>{votedPositions}/{totalPositions}</span>
-              </div>
-              <button className={voterStyles.logoutBtn} onClick={handleCancelVoting} style={{ 
-                backgroundColor: "transparent",
-                border: "1px solid var(--border-color, #334155)"
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                Cancel
-              </button>
+            <div>
+              <h1 className="text-xl font-bold text-base-content">Cast Your Vote</h1>
+              <p className="text-sm text-base-content/60">{votingElection.title}</p>
             </div>
           </div>
-        </header>
+          <div className="flex-none gap-4">
+            <div className="badge badge-lg badge-primary gap-2">
+              <span className="font-semibold">{votedPositions}/{totalPositions}</span>
+              <span className="opacity-70">positions</span>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={handleCancelVoting}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancel
+            </button>
+          </div>
+        </div>
 
-        <div className={voterStyles.content} style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem" }}>
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          {/* Message Alert */}
           {message && (
-            <div style={{
-              padding: "1rem 1.25rem",
-              marginBottom: "1.5rem",
-              borderRadius: "12px",
-              backgroundColor: message.type === "error" ? "rgba(239, 68, 68, 0.1)" : "rgba(16, 185, 129, 0.1)",
-              color: message.type === "error" ? "#ef4444" : "#10b981",
-              border: `1px solid ${message.type === "error" ? "rgba(239, 68, 68, 0.3)" : "rgba(16, 185, 129, 0.3)"}`,
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <div className={`alert ${message.type === "error" ? "alert-error" : "alert-success"} mb-6 shadow-lg`}>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {message.type === "error" ? (
-                  <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 ) : (
-                  <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 )}
               </svg>
-              {message.text}
+              <span>{message.text}</span>
             </div>
           )}
 
-          <div style={{ marginBottom: "1.5rem" }}>
-            <div style={{
-              backgroundColor: "var(--card-bg, #1e293b)",
-              borderRadius: "12px",
-              padding: "1.25rem",
-              border: "1px solid var(--border-color, #334155)",
-              display: "flex",
-              alignItems: "center",
-              gap: "1rem",
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-              <div>
-                <p style={{ color: "#e2e8f0", fontWeight: "500", marginBottom: "0.25rem" }}>Voting Instructions</p>
-                <p style={{ color: "#94a3b8", fontSize: "0.875rem" }}>
-                  Select your preferred candidate(s) for each position. Click on a candidate card to select or deselect.
-                </p>
+          {/* Instructions Card */}
+          <div className="card bg-base-100 shadow-xl mb-6">
+            <div className="card-body py-4">
+              <div className="flex items-center gap-3">
+                <div className="text-info">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base-content">Voting Instructions</h3>
+                  <p className="text-sm text-base-content/60">Click on candidate cards to select or deselect your choices for each position.</p>
+                </div>
               </div>
             </div>
           </div>
 
+          {/* Positions */}
           {votingElection.positions.map((position, index) => {
             const positionVotes = selectedVotes[position.id] || [];
             const isComplete = positionVotes.length >= position.minVotes;
 
             return (
-              <div 
-                key={position.id} 
-                style={{ 
-                  marginBottom: "2rem",
-                  backgroundColor: "var(--card-bg, #0f172a)",
-                  borderRadius: "16px",
-                  border: isComplete ? "2px solid rgba(16, 185, 129, 0.5)" : "1px solid var(--border-color, #1e293b)",
-                  overflow: "hidden",
-                }}
-              >
-                <div style={{
-                  padding: "1.25rem 1.5rem",
-                  backgroundColor: isComplete ? "rgba(16, 185, 129, 0.05)" : "var(--card-bg, #1e293b)",
-                  borderBottom: "1px solid var(--border-color, #334155)",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <div style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "8px",
-                      backgroundColor: isComplete ? "#10b981" : "#3b82f6",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: "700",
-                      color: "white",
-                    }}>
-                      {isComplete ? (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      ) : (
-                        index + 1
-                      )}
+              <div key={position.id} className={`card bg-base-100 shadow-xl mb-6 ${isComplete ? "ring-2 ring-success" : ""}`}>
+                <div className="card-body">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white ${isComplete ? "bg-success" : "bg-primary"}`}>
+                        {isComplete ? (
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          index + 1
+                        )}
+                      </div>
+                      <div>
+                        <h2 className="card-title text-lg">{position.name}</h2>
+                        <p className="text-sm text-base-content/60">
+                          {position.description || `Select ${position.minVotes === position.maxVotes ? position.minVotes : `${position.minVotes}-${position.maxVotes}`} candidate(s)`}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#f1f5f9", marginBottom: "0.25rem" }}>
-                        {position.name}
-                      </h2>
-                      <p style={{ fontSize: "0.875rem", color: "#94a3b8" }}>
-                        {position.description || `Select ${position.minVotes === position.maxVotes ? position.minVotes : `${position.minVotes}-${position.maxVotes}`} candidate(s)`}
-                      </p>
+                    <div className={`badge ${isComplete ? "badge-success" : "badge-primary"} badge-lg gap-1`}>
+                      <span className="font-bold">{positionVotes.length}</span>
+                      <span>/</span>
+                      <span>{position.maxVotes}</span>
+                      <span className="ml-1">selected</span>
                     </div>
                   </div>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "20px",
-                    backgroundColor: isComplete ? "rgba(16, 185, 129, 0.1)" : "rgba(59, 130, 246, 0.1)",
-                    color: isComplete ? "#10b981" : "#3b82f6",
-                    fontSize: "0.875rem",
-                    fontWeight: "500",
-                  }}>
-                    <span>{positionVotes.length}</span>
-                    <span>/</span>
-                    <span>{position.maxVotes}</span>
-                    <span style={{ marginLeft: "0.25rem" }}>selected</span>
-                  </div>
-                </div>
 
-                <div style={{ padding: "1.5rem" }}>
-                  <div style={{ 
-                    display: "grid", 
-                    gap: "1rem", 
-                    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" 
-                  }}>
+                  <div className="divider my-2"></div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {position.candidates.map((candidate) => {
                       const isSelected = positionVotes.includes(candidate.id);
                       return (
                         <div
                           key={candidate.id}
                           onClick={() => handleCandidateSelect(position.id, candidate.id, position.maxVotes)}
-                          style={{
-                            padding: "1.25rem",
-                            borderRadius: "12px",
-                            border: isSelected ? "2px solid #3b82f6" : "1px solid var(--border-color, #334155)",
-                            backgroundColor: isSelected ? "rgba(59, 130, 246, 0.1)" : "var(--card-bg, #1e293b)",
-                            cursor: "pointer",
-                            transition: "all 0.2s ease",
-                            transform: isSelected ? "scale(1.02)" : "scale(1)",
-                            position: "relative",
-                          }}
+                          className={`card cursor-pointer transition-all duration-200 hover:scale-[1.02] ${
+                            isSelected 
+                              ? "bg-primary/10 border-2 border-primary shadow-lg" 
+                              : "bg-base-200 border-2 border-transparent hover:border-primary/30"
+                          }`}
                         >
-                          {isSelected && (
-                            <div style={{
-                              position: "absolute",
-                              top: "-8px",
-                              right: "-8px",
-                              width: "28px",
-                              height: "28px",
-                              borderRadius: "50%",
-                              backgroundColor: "#3b82f6",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.5)",
-                            }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            </div>
-                          )}
-                          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                            {candidate.photoUrl ? (
-                              <img
-                                src={candidate.photoUrl}
-                                alt={candidate.name}
-                                style={{ 
-                                  width: "60px", 
-                                  height: "60px", 
-                                  borderRadius: "12px", 
-                                  objectFit: "cover",
-                                  border: isSelected ? "2px solid #3b82f6" : "2px solid var(--border-color, #334155)",
-                                }}
-                              />
-                            ) : (
-                              <div style={{
-                                width: "60px",
-                                height: "60px",
-                                borderRadius: "12px",
-                                background: isSelected 
-                                  ? "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)"
-                                  : "linear-gradient(135deg, #475569 0%, #334155 100%)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: "1.5rem",
-                                fontWeight: "700",
-                                color: "white",
-                              }}>
-                                {candidate.name.charAt(0).toUpperCase()}
+                          <div className="card-body p-4">
+                            <div className="flex items-center gap-3">
+                              {candidate.photoUrl ? (
+                                <div className="avatar">
+                                  <div className={`w-14 h-14 rounded-xl ring-2 ${isSelected ? "ring-primary" : "ring-base-300"}`}>
+                                    <img src={candidate.photoUrl} alt={candidate.name} />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="avatar placeholder">
+                                  <div className={`w-14 h-14 rounded-xl ${isSelected ? "bg-primary text-primary-content" : "bg-base-300 text-base-content"}`}>
+                                    <span className="text-xl font-bold">{candidate.name.charAt(0)}</span>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-base-content truncate">{candidate.name}</h3>
+                                {candidate.bio && (
+                                  <p className="text-xs text-base-content/60 line-clamp-2">{candidate.bio}</p>
+                                )}
                               </div>
-                            )}
-                            <div style={{ flex: 1 }}>
-                              <h3 style={{ 
-                                fontWeight: "600", 
-                                marginBottom: "0.375rem", 
-                                color: isSelected ? "#3b82f6" : "#f1f5f9",
-                                fontSize: "1rem",
-                              }}>
-                                {candidate.name}
-                              </h3>
-                              {candidate.bio && (
-                                <p style={{ 
-                                  fontSize: "0.875rem", 
-                                  color: "#94a3b8",
-                                  lineHeight: "1.4",
-                                  display: "-webkit-box",
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: "vertical",
-                                  overflow: "hidden",
-                                }}>
-                                  {candidate.bio}
-                                </p>
+                              {isSelected && (
+                                <div className="flex-shrink-0">
+                                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-primary-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -590,86 +470,30 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
             );
           })}
 
-          <div style={{ 
-            display: "flex", 
-            gap: "1rem", 
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: "2rem",
-            padding: "1.5rem",
-            backgroundColor: "var(--card-bg, #1e293b)",
-            borderRadius: "12px",
-            border: "1px solid var(--border-color, #334155)",
-          }}>
-            <div>
-              <p style={{ color: "#94a3b8", fontSize: "0.875rem" }}>
-                {votedPositions === totalPositions 
-                  ? "You have completed all selections. Ready to submit!"
-                  : `Complete ${totalPositions - votedPositions} more position(s) to submit your vote.`
-                }
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: "1rem" }}>
-              <button onClick={handleCancelVoting} style={{
-                padding: "0.875rem 1.5rem",
-                borderRadius: "10px",
-                border: "1px solid var(--border-color, #334155)",
-                backgroundColor: "transparent",
-                cursor: "pointer",
-                color: "#e2e8f0",
-                fontWeight: "500",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                Cancel
-              </button>
-              <button 
-                onClick={handleSubmitVote} 
-                disabled={submitting || votedPositions < totalPositions} 
-                style={{
-                  padding: "0.875rem 2rem",
-                  borderRadius: "10px",
-                  border: "none",
-                  background: votedPositions === totalPositions 
-                    ? "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)" 
-                    : "#475569",
-                  color: "white",
-                  cursor: (submitting || votedPositions < totalPositions) ? "not-allowed" : "pointer",
-                  opacity: submitting ? 0.7 : 1,
-                  fontWeight: "600",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  boxShadow: votedPositions === totalPositions ? "0 4px 14px rgba(59, 130, 246, 0.4)" : "none",
-                }}
-              >
-                {submitting ? (
-                  <>
-                    <div style={{
-                      width: "18px",
-                      height: "18px",
-                      border: "2px solid rgba(255,255,255,0.3)",
-                      borderTopColor: "white",
-                      borderRadius: "50%",
-                      animation: "spin 1s linear infinite",
-                    }} />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
+          {/* Submit Button */}
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <p className="text-base-content/60">
+                    You&apos;ve completed <span className="font-bold text-primary">{votedPositions}</span> of <span className="font-bold">{totalPositions}</span> positions
+                  </p>
+                </div>
+                <button
+                  onClick={handleSubmitVote}
+                  disabled={submitting || votedPositions < totalPositions}
+                  className={`btn btn-lg ${votedPositions === totalPositions ? "btn-success" : "btn-primary"} ${submitting ? "loading" : ""}`}
+                >
+                  {submitting ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Submit Vote
-                  </>
-                )}
-              </button>
+                  )}
+                  {submitting ? "Submitting..." : "Submit Vote"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -684,298 +508,112 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
     );
 
     return (
-      <div className={voterStyles.container}>
-        <header className={voterStyles.header}>
-          <div className={voterStyles.headerContent}>
-            <div>
-              <h1 className={voterStyles.pageTitle}>Apply as Candidate</h1>
-              <p className={voterStyles.pageSubtitle}>{applyingElection.title}</p>
+      <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300">
+        <div className="navbar bg-base-100/80 backdrop-blur-lg sticky top-0 z-50 border-b border-base-content/10">
+          <div className="flex-1 gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-success to-primary flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
-            <button className={voterStyles.logoutBtn} onClick={handleCancelApplication}>Cancel</button>
+            <div>
+              <h1 className="text-xl font-bold text-base-content">Apply as Candidate</h1>
+              <p className="text-sm text-base-content/60">{applyingElection.title}</p>
+            </div>
           </div>
-        </header>
+          <div className="flex-none">
+            <button className="btn btn-ghost btn-sm" onClick={handleCancelApplication}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancel
+            </button>
+          </div>
+        </div>
 
-        <div className={voterStyles.content}>
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
           {message && (
-            <div style={{
-              padding: "1rem",
-              marginBottom: "1rem",
-              borderRadius: "8px",
-              backgroundColor: message.type === "error" ? "#fee2e2" : "#d1fae5",
-              color: message.type === "error" ? "#dc2626" : "#059669",
-            }}>
-              {message.text}
+            <div className={`alert ${message.type === "error" ? "alert-error" : "alert-success"} mb-6 shadow-lg`}>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={message.type === "error" ? "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} />
+              </svg>
+              <span>{message.text}</span>
             </div>
           )}
 
-          <div className={voterStyles.card}>
-            <div className={voterStyles.cardHeader}>
-              <h2 className={voterStyles.cardTitle} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <polyline points="16 11 18 13 22 9"/>
-                </svg>
-                Select Position
-              </h2>
-              <p style={{ fontSize: "0.875rem", color: "#64748b", marginTop: "0.25rem" }}>
-                Choose the position you want to apply for
-              </p>
-            </div>
-            {availablePositions.length === 0 ? (
-              <div style={{ 
-                padding: "2rem", 
-                textAlign: "center", 
-                backgroundColor: "rgba(16, 185, 129, 0.05)", 
-                borderRadius: "12px",
-                border: "1px solid rgba(16, 185, 129, 0.2)"
-              }}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 auto 1rem" }}>
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                <p style={{ color: "#10b981", fontWeight: "600" }}>All applications submitted!</p>
-                <p style={{ color: "#64748b", fontSize: "0.875rem", marginTop: "0.5rem" }}>
-                  You have already applied for all available positions.
-                </p>
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+              <h2 className="card-title mb-4">Select Position</h2>
+              
+              <div className="form-control w-full mb-6">
+                <select
+                  className="select select-bordered select-lg w-full"
+                  value={selectedPosition}
+                  onChange={(e) => setSelectedPosition(e.target.value)}
+                >
+                  <option value="">Choose a position to apply for...</option>
+                  {availablePositions.map((pos) => (
+                    <option key={pos.id} value={pos.id}>{pos.name}</option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.75rem", marginBottom: "0.5rem" }}>
-                {availablePositions.map((position) => {
-                  const isSelected = selectedPosition === position.id;
-                  return (
-                    <button
-                      key={position.id}
-                      onClick={() => setSelectedPosition(position.id)}
-                      style={{
-                        padding: "1rem 1.25rem",
-                        borderRadius: "12px",
-                        border: isSelected ? "2px solid #3b82f6" : "2px solid var(--border-color, #e2e8f0)",
-                        backgroundColor: isSelected ? "rgba(59, 130, 246, 0.1)" : "var(--card-bg, white)",
-                        cursor: "pointer",
-                        color: "inherit",
-                        fontWeight: isSelected ? "600" : "500",
-                        transition: "all 0.2s",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "0.5rem",
-                        textAlign: "center",
-                      }}
-                    >
-                      {isSelected && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      )}
-                      {position.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
-            {selectedPosition && applyingElection.applicationForm.length > 0 && (
-              <div style={{ marginTop: "1.5rem", borderTop: "1px solid var(--border-color, #e2e8f0)", paddingTop: "1.5rem" }}>
-                <h3 style={{ marginBottom: "1.5rem", fontWeight: "600", fontSize: "1.125rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                  </svg>
-                  Application Form
-                </h3>
-                {applyingElection.applicationForm.map((field) => (
-                  <div key={field.id} style={{ marginBottom: "1.5rem" }}>
-                    <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500", fontSize: "0.95rem" }}>
-                      {field.fieldName}
-                      {field.isRequired && <span style={{ color: "#ef4444", marginLeft: "4px" }}>*</span>}
-                    </label>
-                    
-                    {field.fieldType === "textarea" ? (
-                      <textarea
-                        value={formResponses[field.id] || ""}
-                        onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
-                        placeholder={field.placeholder || `Enter ${field.fieldName.toLowerCase()}...`}
-                        style={{
-                          width: "100%",
-                          padding: "0.875rem",
-                          borderRadius: "10px",
-                          border: "2px solid var(--border-color, #e2e8f0)",
-                          backgroundColor: "var(--input-bg, white)",
-                          color: "inherit",
-                          minHeight: "120px",
-                          resize: "vertical",
-                          fontSize: "0.95rem",
-                          transition: "border-color 0.2s, box-shadow 0.2s",
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = "#3b82f6";
-                          e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = "var(--border-color, #e2e8f0)";
-                          e.target.style.boxShadow = "none";
-                        }}
-                      />
-                    ) : field.fieldType === "select" ? (
-                      <select
-                        value={formResponses[field.id] || ""}
-                        onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
-                        style={{
-                          width: "100%",
-                          padding: "0.875rem",
-                          borderRadius: "10px",
-                          border: "2px solid var(--border-color, #e2e8f0)",
-                          backgroundColor: "var(--input-bg, white)",
-                          color: "inherit",
-                          fontSize: "0.95rem",
-                          cursor: "pointer",
-                          appearance: "none",
-                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-                          backgroundRepeat: "no-repeat",
-                          backgroundPosition: "right 0.75rem center",
-                          paddingRight: "2.5rem",
-                        }}
-                      >
-                        <option value="">Select {field.fieldName.toLowerCase()}...</option>
-                        {field.options?.split(",").map((opt) => (
-                          <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
-                        ))}
-                      </select>
-                    ) : field.fieldType === "file" ? (
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type="file"
-                          id={`file-${field.id}`}
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              // For now, store the file name. In production, you'd upload to a server
-                              setFormResponses({ ...formResponses, [field.id]: file.name });
-                            }
-                          }}
-                          style={{ display: "none" }}
-                        />
-                        <label
-                          htmlFor={`file-${field.id}`}
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: "2rem",
-                            borderRadius: "12px",
-                            border: "2px dashed var(--border-color, #cbd5e1)",
-                            backgroundColor: "var(--input-bg, #f8fafc)",
-                            cursor: "pointer",
-                            transition: "all 0.2s",
-                            textAlign: "center",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = "#3b82f6";
-                            e.currentTarget.style.backgroundColor = "rgba(59, 130, 246, 0.05)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = "var(--border-color, #cbd5e1)";
-                            e.currentTarget.style.backgroundColor = "var(--input-bg, #f8fafc)";
-                          }}
-                        >
-                          <div style={{
-                            width: "56px",
-                            height: "56px",
-                            borderRadius: "12px",
-                            backgroundColor: "rgba(59, 130, 246, 0.1)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: "1rem",
-                          }}>
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                              <polyline points="17 8 12 3 7 8"/>
-                              <line x1="12" y1="3" x2="12" y2="15"/>
-                            </svg>
-                          </div>
-                          {formResponses[field.id] ? (
-                            <div>
-                              <p style={{ fontWeight: "600", color: "#10b981", marginBottom: "0.25rem" }}>
-                                ✓ File selected
-                              </p>
-                              <p style={{ fontSize: "0.875rem", color: "#64748b" }}>
-                                {formResponses[field.id]}
-                              </p>
-                            </div>
-                          ) : (
-                            <div>
-                              <p style={{ fontWeight: "600", color: "#3b82f6", marginBottom: "0.25rem" }}>
-                                Click to upload image
-                              </p>
-                              <p style={{ fontSize: "0.875rem", color: "#64748b" }}>
-                                PNG, JPG, GIF up to 5MB
-                              </p>
-                            </div>
-                          )}
+              {selectedPosition && applyingElection.applicationForm.length > 0 && (
+                <>
+                  <div className="divider">Application Form</div>
+                  <div className="space-y-4">
+                    {applyingElection.applicationForm.map((field) => (
+                      <div key={field.id} className="form-control w-full">
+                        <label className="label">
+                          <span className="label-text font-medium">
+                            {field.fieldName}
+                            {field.isRequired && <span className="text-error ml-1">*</span>}
+                          </span>
                         </label>
+                        {field.fieldType === "textarea" ? (
+                          <textarea
+                            className="textarea textarea-bordered h-24"
+                            placeholder={field.placeholder || ""}
+                            value={formResponses[field.id] || ""}
+                            onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                          />
+                        ) : field.fieldType === "select" && field.options ? (
+                          <select
+                            className="select select-bordered"
+                            value={formResponses[field.id] || ""}
+                            onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                          >
+                            <option value="">Select an option...</option>
+                            {field.options.split(",").map((opt) => (
+                              <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type={field.fieldType === "email" ? "email" : field.fieldType === "number" ? "number" : "text"}
+                            className="input input-bordered"
+                            placeholder={field.placeholder || ""}
+                            value={formResponses[field.id] || ""}
+                            onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                          />
+                        )}
                       </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={formResponses[field.id] || ""}
-                        onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
-                        placeholder={field.placeholder || `Enter ${field.fieldName.toLowerCase()}...`}
-                        style={{
-                          width: "100%",
-                          padding: "0.875rem",
-                          borderRadius: "10px",
-                          border: "2px solid var(--border-color, #e2e8f0)",
-                          backgroundColor: "var(--input-bg, white)",
-                          color: "inherit",
-                          fontSize: "0.95rem",
-                          transition: "border-color 0.2s, box-shadow 0.2s",
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = "#3b82f6";
-                          e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = "var(--border-color, #e2e8f0)";
-                          e.target.style.boxShadow = "none";
-                        }}
-                      />
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                </>
+              )}
 
-            {selectedPosition && (
-              <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end", marginTop: "1.5rem" }}>
-                <button onClick={handleCancelApplication} style={{
-                  padding: "0.75rem 1.5rem",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border-color, #e2e8f0)",
-                  backgroundColor: "transparent",
-                  cursor: "pointer",
-                  color: "inherit",
-                }}>
-                  Cancel
-                </button>
-                <button onClick={handleSubmitApplication} disabled={submitting} style={{
-                  padding: "0.75rem 1.5rem",
-                  borderRadius: "8px",
-                  border: "none",
-                  backgroundColor: "#10b981",
-                  color: "white",
-                  cursor: submitting ? "not-allowed" : "pointer",
-                  opacity: submitting ? 0.7 : 1,
-                }}>
+              <div className="card-actions justify-end mt-6">
+                <button className="btn btn-ghost" onClick={handleCancelApplication}>Cancel</button>
+                <button
+                  className={`btn btn-success ${submitting ? "loading" : ""}`}
+                  onClick={handleSubmitApplication}
+                  disabled={!selectedPosition || submitting}
+                >
                   {submitting ? "Submitting..." : "Submit Application"}
                 </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -984,267 +622,299 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
 
   // Main Dashboard
   return (
-    <div className={voterStyles.container}>
-      <header className={voterStyles.header}>
-        <div className={voterStyles.headerContent}>
-          <div>
-            <h1 className={voterStyles.pageTitle}>Voter Dashboard</h1>
-            <p className={voterStyles.pageSubtitle}>Cast your vote and apply as candidate</p>
-            <div className={voterStyles.welcomeBadge}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              {session.fullName} · {session.orgName}
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-300">
+      {/* Header */}
+      <div className="navbar bg-base-100/80 backdrop-blur-lg sticky top-0 z-50 border-b border-base-content/10 px-4 lg:px-8">
+        <div className="flex-1 gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-          <button className={voterStyles.logoutBtn} onClick={handleLogout}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
+          <div>
+            <h1 className="text-lg font-bold text-base-content">Voter Dashboard</h1>
+            <p className="text-xs text-base-content/60">{session.orgName}</p>
+          </div>
+        </div>
+        <div className="flex-none gap-2">
+          <div className="badge badge-success badge-outline gap-1 hidden sm:flex">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+            {session.fullName}
+          </div>
+          <button className="btn btn-ghost btn-sm text-error" onClick={handleLogout}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             Sign Out
           </button>
         </div>
-      </header>
+      </div>
 
-      <div className={voterStyles.content}>
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
+        {/* Error Alert */}
+        {error && (
+          <div className="alert alert-error mb-6 shadow-lg">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{error}</span>
+            <button className="btn btn-sm btn-ghost" onClick={loadData}>Retry</button>
+          </div>
+        )}
+
         {/* Account Status Banner */}
         {accountStatus && !accountStatus.hasActiveElections && history.length > 0 && (
-          <div style={{
-            padding: "1.25rem",
-            marginBottom: "1.5rem",
-            borderRadius: "12px",
-            backgroundColor: "rgba(251, 191, 36, 0.1)",
-            border: "1px solid rgba(251, 191, 36, 0.3)",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-          }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
+          <div className="alert alert-warning mb-6 shadow-lg">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <p style={{ color: "#f59e0b", fontWeight: "600", marginBottom: "0.25rem" }}>No Active Elections</p>
-              <p style={{ color: "#94a3b8", fontSize: "0.875rem" }}>
-                All elections have ended. You have voted in {accountStatus.hasVotedCount} election(s). 
-                Your account will remain accessible for viewing history.
-              </p>
+              <h3 className="font-bold">No Active Elections</h3>
+              <p className="text-sm">All elections have ended. You have voted in {accountStatus.hasVotedCount} election(s).</p>
             </div>
           </div>
         )}
 
-        <div className={voterStyles.tabRow}>
+        {/* Stats Cards */}
+        <div className="stats stats-vertical lg:stats-horizontal shadow-xl w-full mb-6 bg-base-100">
+          <div className="stat">
+            <div className="stat-figure text-primary">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="stat-title">Active Elections</div>
+            <div className="stat-value text-primary">{elections.filter(e => e.canVote && !e.hasVoted).length}</div>
+            <div className="stat-desc">Ready to vote</div>
+          </div>
+          <div className="stat">
+            <div className="stat-figure text-success">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div className="stat-title">Votes Cast</div>
+            <div className="stat-value text-success">{history.length}</div>
+            <div className="stat-desc">Elections participated</div>
+          </div>
+          <div className="stat">
+            <div className="stat-figure text-secondary">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div className="stat-title">Applications</div>
+            <div className="stat-value text-secondary">{myApplications.length}</div>
+            <div className="stat-desc">{myApplications.filter(a => a.status === "PENDING").length} pending</div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="tabs tabs-boxed bg-base-100 p-1 mb-6 shadow-lg">
           {[
-            { key: "elections", label: "Vote", count: elections.filter((e) => e.canVote).length },
-            { key: "apply", label: "Apply as Candidate", count: applicationElections.length },
-            { key: "applications", label: "My Applications", count: myApplications.length },
-            { key: "history", label: "History", count: history.length },
+            { key: "elections", label: "Vote", count: elections.filter((e) => e.canVote).length, icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+            { key: "apply", label: "Apply", count: applicationElections.length, icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+            { key: "applications", label: "My Apps", count: myApplications.length, icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+            { key: "history", label: "History", count: history.length, icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as TabType)}
-              className={activeTab === tab.key ? `${voterStyles.tabBtn} ${voterStyles.tabBtnActive}` : voterStyles.tabBtn}
+              className={`tab tab-lg flex-1 gap-2 ${activeTab === tab.key ? "tab-active bg-primary text-primary-content rounded-lg" : ""}`}
             >
-              {tab.label} ({tab.count})
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
+              </svg>
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="badge badge-sm">{tab.count}</span>
             </button>
           ))}
           <button
             onClick={() => loadData()}
             disabled={loading}
-            className={voterStyles.refreshBtn}
-            title="Refresh data"
+            className="btn btn-ghost btn-sm ml-2"
+            title="Refresh"
           >
-            <svg 
-              width="16" 
-              height="16" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-              style={{ animation: loading ? "spin 0.8s linear infinite" : "none" }}
-            >
-              <path d="M23 4v6h-6" />
-              <path d="M1 20v-6h6" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            <svg className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            {loading ? "Refreshing..." : "Refresh"}
           </button>
         </div>
 
-        {/* Elections Tab */}
-        {activeTab === "elections" && (
-          <div className={voterStyles.card}>
-            <div className={voterStyles.cardHeader}>
-              <h2 className={voterStyles.cardTitle}>Active Elections</h2>
-            </div>
-            {elections.length === 0 ? (
-              <div className={voterStyles.emptyState}>
-                <svg className={voterStyles.emptyStateIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <line x1="9" y1="3" x2="9" y2="21" />
+        {/* Tab Content */}
+        <div className="card bg-base-100 shadow-xl">
+          {/* Elections Tab */}
+          {activeTab === "elections" && (
+            <div className="card-body">
+              <h2 className="card-title text-xl mb-4">
+                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p>No active elections at the moment.</p>
-                <p className={voterStyles.emptyStateHint}>Elections you can vote in will appear here when they are open and you are linked with the correct voter code.</p>
-              </div>
-            ) : (
-              <div className={voterStyles.electionsList}>
-                {elections.map((election) => (
-                  <div key={election.id} className={voterStyles.electionItem}>
-                    <div>
-                      <h3 className={voterStyles.electionTitle}>{election.title}</h3>
-                      <div className={voterStyles.electionMeta}>
-                        <span className={voterStyles.statusBadge} style={{
-                          backgroundColor: election.hasVoted ? "rgba(16, 185, 129, 0.1)" : "rgba(59, 130, 246, 0.1)",
-                          color: election.hasVoted ? "#10b981" : "#3b82f6",
-                          borderColor: election.hasVoted ? "#10b981" : "#3b82f6",
-                        }}>
-                          {election.hasVoted ? "Voted" : "Open"}
-                        </span>
-                        <span className={voterStyles.metaText}>{election.positions.length} position(s)</span>
-                        <span className={voterStyles.metaText}>Ends: {formatDate(election.endDate)}</span>
-                      </div>
-                    </div>
-                    {election.canVote && !election.hasVoted && (
-                      <button onClick={() => handleStartVoting(election)} className={voterStyles.voteNowBtn}>
-                        Vote Now
-                      </button>
-                    )}
+                Active Elections
+              </h2>
+              {elections.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-base-200 flex items-center justify-center">
+                    <svg className="w-10 h-10 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Apply Tab */}
-        {activeTab === "apply" && (
-          <div className={voterStyles.card}>
-            <div className={voterStyles.cardHeader}>
-              <h2 className={voterStyles.cardTitle}>Apply as Candidate</h2>
-            </div>
-            {applicationElections.length === 0 ? (
-              <div className={voterStyles.emptyState}>
-                <svg className={voterStyles.emptyStateIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-                <p>No elections are currently accepting candidate applications.</p>
-                <p className={voterStyles.emptyStateHint}>
-                  If you expect to see an election here, make sure you signed in with the voter code issued for that election, and that the organisation has opened applications (Candidate method: Application) for that election.
-                </p>
-              </div>
-            ) : (
-              <div className={voterStyles.electionsList}>
-                {applicationElections.map((election) => {
-                  const appliedCount = election.applications.length;
-                  const totalPositions = election.positions.length;
-                  return (
-                    <div key={election.id} className={voterStyles.electionItem}>
-                      <div>
-                        <h3 className={voterStyles.electionTitle}>{election.title}</h3>
-                        <div className={voterStyles.electionMeta}>
-                          <span className={voterStyles.metaText}>{totalPositions} position(s)</span>
-                          <span className={voterStyles.metaText}>Applied: {appliedCount}/{totalPositions}</span>
-                          {election.applicationEndDate && (
-                            <span className={voterStyles.metaText}>
-                              Deadline: {formatDate(election.applicationEndDate)}
-                            </span>
-                          )}
+                  <h3 className="text-lg font-semibold text-base-content/60 mb-2">No active elections</h3>
+                  <p className="text-base-content/40 max-w-md mx-auto">Elections you can vote in will appear here when they are open and you are linked with the correct voter code.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {elections.map((election) => (
+                    <div key={election.id} className="flex items-center justify-between p-4 rounded-xl bg-base-200 hover:bg-base-300 transition-colors">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-base-content mb-1">{election.title}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          <span className={`badge ${election.hasVoted ? "badge-success" : "badge-primary"}`}>
+                            {election.hasVoted ? "Voted" : "Open"}
+                          </span>
+                          <span className="badge badge-ghost">{election.positions.length} position(s)</span>
+                          <span className="text-xs text-base-content/60">Ends: {formatDate(election.endDate)}</span>
                         </div>
                       </div>
-                      {appliedCount < totalPositions && (
-                        <button onClick={() => handleStartApplication(election)} className={voterStyles.applyBtn}>
-                          Apply
+                      {election.canVote && !election.hasVoted && (
+                        <button onClick={() => handleStartVoting(election)} className="btn btn-primary btn-sm">
+                          Vote Now
                         </button>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* My Applications Tab */}
-        {activeTab === "applications" && (
-          <div className={voterStyles.card}>
-            <div className={voterStyles.cardHeader}>
-              <h2 className={voterStyles.cardTitle}>My Applications</h2>
+                  ))}
+                </div>
+              )}
             </div>
-            {myApplications.length === 0 ? (
-              <div className={voterStyles.emptyState}>
-                <svg className={voterStyles.emptyStateIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          )}
+
+          {/* Apply Tab */}
+          {activeTab === "apply" && (
+            <div className="card-body">
+              <h2 className="card-title text-xl mb-4">
+                <svg className="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p>You haven&apos;t submitted any applications yet.</p>
-              </div>
-            ) : (
-              <div className={voterStyles.electionsList}>
-                {myApplications.map((app) => (
-                  <div key={app.id} className={voterStyles.electionItem}>
-                    <div>
-                      <h3 className={voterStyles.electionTitle}>{app.election.title}</h3>
-                      <div className={voterStyles.electionMeta}>
-                        <span className={voterStyles.metaText}>Position: {app.position.name}</span>
-                        <span className={voterStyles.statusBadge} style={{
-                          backgroundColor: `${getStatusColor(app.status)}20`,
-                          color: getStatusColor(app.status),
-                          borderColor: getStatusColor(app.status),
-                        }}>
-                          {app.status}
-                        </span>
-                        <span className={voterStyles.metaText}>Submitted: {formatDate(app.submittedAt)}</span>
+                Apply as Candidate
+              </h2>
+              {applicationElections.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-base-200 flex items-center justify-center">
+                    <svg className="w-10 h-10 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-base-content/60 mb-2">No open applications</h3>
+                  <p className="text-base-content/40 max-w-md mx-auto">No elections are currently accepting candidate applications.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {applicationElections.map((election) => {
+                    const appliedCount = election.applications.length;
+                    const totalPositions = election.positions.length;
+                    return (
+                      <div key={election.id} className="flex items-center justify-between p-4 rounded-xl bg-base-200 hover:bg-base-300 transition-colors">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-base-content mb-1">{election.title}</h3>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="badge badge-ghost">{totalPositions} position(s)</span>
+                            <span className="badge badge-outline">Applied: {appliedCount}/{totalPositions}</span>
+                            {election.applicationEndDate && (
+                              <span className="text-xs text-base-content/60">Deadline: {formatDate(election.applicationEndDate)}</span>
+                            )}
+                          </div>
+                        </div>
+                        {appliedCount < totalPositions && (
+                          <button onClick={() => handleStartApplication(election)} className="btn btn-success btn-sm">
+                            Apply
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Applications Tab */}
+          {activeTab === "applications" && (
+            <div className="card-body">
+              <h2 className="card-title text-xl mb-4">
+                <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                My Applications
+              </h2>
+              {myApplications.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-base-200 flex items-center justify-center">
+                    <svg className="w-10 h-10 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-base-content/60 mb-2">No applications</h3>
+                  <p className="text-base-content/40">You haven&apos;t submitted any applications yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myApplications.map((app) => (
+                    <div key={app.id} className="flex items-center justify-between p-4 rounded-xl bg-base-200">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-base-content mb-1">{app.election.title}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-sm text-base-content/60">Position: {app.position.name}</span>
+                          <span className={`badge ${getStatusBadgeClass(app.status)}`}>{app.status}</span>
+                          <span className="text-xs text-base-content/60">Submitted: {formatDate(app.submittedAt)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* History Tab */}
-        {activeTab === "history" && (
-          <div className={voterStyles.card}>
-            <div className={voterStyles.cardHeader}>
-              <h2 className={voterStyles.cardTitle}>Voting History</h2>
+                  ))}
+                </div>
+              )}
             </div>
-            {history.length === 0 ? (
-              <div className={voterStyles.emptyState}>
-                <svg className={voterStyles.emptyStateIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 12l2 2 4-4" />
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          )}
+
+          {/* History Tab */}
+          {activeTab === "history" && (
+            <div className="card-body">
+              <h2 className="card-title text-xl mb-4">
+                <svg className="w-6 h-6 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p>You haven&apos;t voted in any elections yet.</p>
-              </div>
-            ) : (
-              <div className={voterStyles.electionsList}>
-                {history.map((ballot) => (
-                  <div key={ballot.id} className={voterStyles.electionItem}>
-                    <div>
-                      <h3 className={voterStyles.electionTitle}>{ballot.election.title}</h3>
-                      <div className={voterStyles.electionMeta}>
-                        <span className={voterStyles.statusBadge} style={{
-                          backgroundColor: "rgba(16, 185, 129, 0.1)",
-                          color: "#10b981",
-                          borderColor: "#10b981",
-                        }}>
-                          Voted
-                        </span>
-                        <span className={voterStyles.metaText}>Voted on: {formatDate(ballot.createdAt)}</span>
-                        <span className={voterStyles.metaText}>Total votes: {ballot.election._count.ballots}</span>
+                Voting History
+              </h2>
+              {history.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-base-200 flex items-center justify-center">
+                    <svg className="w-10 h-10 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-base-content/60 mb-2">No voting history</h3>
+                  <p className="text-base-content/40">You haven&apos;t voted in any elections yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {history.map((ballot) => (
+                    <div key={ballot.id} className="flex items-center justify-between p-4 rounded-xl bg-base-200">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-base-content mb-1">{ballot.election.title}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="badge badge-success">Voted</span>
+                          <span className="text-sm text-base-content/60">Voted on: {formatDate(ballot.createdAt)}</span>
+                          <span className="text-sm text-base-content/60">Total votes: {ballot.election._count.ballots}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
