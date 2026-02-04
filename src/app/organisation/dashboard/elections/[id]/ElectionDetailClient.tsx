@@ -88,6 +88,8 @@ export default function ElectionDetailClient({ session, election: initialElectio
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // Live "now" value so time-based messages auto-refresh while the page is open
+  const [now, setNow] = useState<Date>(new Date());
   
   const [newPositionName, setNewPositionName] = useState("");
   const [newPositionMaxWinners, setNewPositionMaxWinners] = useState(1);
@@ -119,6 +121,15 @@ export default function ElectionDetailClient({ session, election: initialElectio
     applicationStartDate: formatDateForInput(initialElection.applicationStartDate),
     applicationEndDate: formatDateForInput(initialElection.applicationEndDate),
   });
+
+  // Periodically update "now" so application status text updates without manual refresh
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setNow(new Date());
+    }, 30000); // every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   const handleSaveSettings = async () => {
     setIsLoading(true);
@@ -894,7 +905,6 @@ export default function ElectionDetailClient({ session, election: initialElectio
                 <div>
                   <h3 style={{ fontWeight: "600", marginBottom: "0.5rem" }}>Application Portal Status</h3>
                   {(() => {
-                    const now = new Date();
                     const startDate = election.applicationStartDate ? new Date(election.applicationStartDate) : null;
                     const endDate = election.applicationEndDate ? new Date(election.applicationEndDate) : null;
                     
@@ -912,19 +922,19 @@ export default function ElectionDetailClient({ session, election: initialElectio
                     } else if (hasEnded) {
                       return (
                         <p style={{ color: "#ef4444", fontSize: "0.875rem" }}>
-                          ❌ Applications closed on {endDate?.toLocaleDateString()}
+                          ❌ Applications closed on {endDate ? formatDate(endDate) : ""}
                         </p>
                       );
                     } else if (hasNotStarted) {
                       return (
                         <p style={{ color: "#3b82f6", fontSize: "0.875rem" }}>
-                          ⏳ Applications will open on {startDate?.toLocaleDateString()}
+                          ⏳ Applications will open on {startDate ? formatDate(startDate) : ""}
                         </p>
                       );
                     } else if (isOpen) {
                       return (
                         <p style={{ color: "#10b981", fontSize: "0.875rem" }}>
-                          ✅ Applications are OPEN {endDate ? `until ${endDate.toLocaleDateString()}` : "(no end date)"}
+                          ✅ Applications are OPEN {endDate ? `until ${formatDate(endDate)}` : "(no end date)"}
                         </p>
                       );
                     }
