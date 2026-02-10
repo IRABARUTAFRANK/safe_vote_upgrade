@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getOrgAdminSession } from "@/lib/orgAuth";
 import { generateMemberCodes, extractOrgIdentity } from "@/lib/orgCode";
 import { validateAndSanitizeInput } from "@/lib/security";
+import { parseLocalDateTime } from "@/lib/dateHelper";
 import { revalidatePath } from "next/cache";
 
 export async function createElection(formData: FormData) {
@@ -73,8 +74,9 @@ export async function createElection(formData: FormData) {
           status: "DRAFT",
           numberOfVoters: voterCount,
           candidateMethod: candidateMethod as "MANUAL" | "APPLICATION",
-          applicationStartDate: applicationStartDate ? new Date(applicationStartDate) : null,
-          applicationEndDate: applicationEndDate ? new Date(applicationEndDate) : null,
+          // Parse datetime-local inputs as local time, not UTC
+          applicationStartDate: applicationStartDate ? parseLocalDateTime(applicationStartDate) : null,
+          applicationEndDate: applicationEndDate ? parseLocalDateTime(applicationEndDate) : null,
           showRealTimeResults,
         },
       });
@@ -100,6 +102,7 @@ export async function createElection(formData: FormData) {
         additionalNeeded = voterCount - uniqueCodes.length;
       }
 
+      // Create voter codes for the election
       await tx.voterCode.createMany({
         data: uniqueCodes.slice(0, voterCount).map(code => ({
           orgId: session.orgId,
@@ -108,6 +111,9 @@ export async function createElection(formData: FormData) {
           status: "UNUSED",
         })),
       });
+      
+      // Log the creation for debugging
+      console.log(`Created ${uniqueCodes.length} voter codes for election ${election.id}`);
 
       return election;
     });
@@ -261,10 +267,10 @@ export async function updateElectionSettings(
     if (data.startDate !== undefined) updateData.startDate = new Date(data.startDate);
     if (data.endDate !== undefined) updateData.endDate = new Date(data.endDate);
     if (data.applicationStartDate !== undefined) {
-      updateData.applicationStartDate = data.applicationStartDate ? new Date(data.applicationStartDate) : null;
+      updateData.applicationStartDate = data.applicationStartDate ? parseLocalDateTime(data.applicationStartDate) : null;
     }
     if (data.applicationEndDate !== undefined) {
-      updateData.applicationEndDate = data.applicationEndDate ? new Date(data.applicationEndDate) : null;
+      updateData.applicationEndDate = data.applicationEndDate ? parseLocalDateTime(data.applicationEndDate) : null;
     }
     if (data.showRealTimeResults !== undefined) updateData.showRealTimeResults = data.showRealTimeResults;
 

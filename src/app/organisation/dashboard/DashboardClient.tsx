@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { logoutOrgAdminAction } from "./actions";
@@ -61,10 +61,20 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ session, data, elections }: DashboardClientProps) {
   const router = useRouter();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   async function handleLogout() {
     await logoutOrgAdminAction();
     router.push("/organisation/login");
+  }
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    try {
+      router.refresh();
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   const formatDate = (date: string | Date) => {
@@ -101,6 +111,16 @@ export default function DashboardClient({ session, data, elections }: DashboardC
           </div>
         </div>
         <div className="navbar-end gap-2">
+          <button 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="btn btn-ghost btn-sm"
+            title="Refresh dashboard"
+          >
+            <svg className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
           <ThemeToggle />
           <button className="btn btn-ghost btn-sm text-error" onClick={handleLogout}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

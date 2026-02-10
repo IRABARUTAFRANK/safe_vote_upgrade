@@ -29,6 +29,7 @@ export default function DashboardClient({ session, data }: DashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"overview" | "organisations" | "logs" | "settings">("overview");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL");
 
@@ -36,6 +37,15 @@ export default function DashboardClient({ session, data }: DashboardProps) {
     setIsLoggingOut(true);
     await handleLogout();
     router.push("/superadmin/login");
+  }
+
+  async function onRefresh() {
+    setIsRefreshing(true);
+    try {
+      router.refresh();
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   async function onApprove(orgId: string) {
@@ -230,6 +240,16 @@ export default function DashboardClient({ session, data }: DashboardProps) {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="btn btn-ghost btn-sm"
+                title="Refresh dashboard"
+              >
+                <svg className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
               <div className="badge badge-success badge-outline gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 System Operational

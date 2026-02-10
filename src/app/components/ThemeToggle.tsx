@@ -26,11 +26,18 @@ export default function ThemeToggle() {
     if (mode === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
     } else if (mode === 'light') {
+      // Remove the dark theme attribute to revert to light mode
       document.documentElement.removeAttribute('data-theme');
+      // Also explicitly set light mode
+      document.documentElement.setAttribute('data-theme', 'light');
     } else {
+      // System preference
       const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) document.documentElement.setAttribute('data-theme', 'dark');
-      else document.documentElement.removeAttribute('data-theme');
+      if (prefersDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
     }
     try { localStorage.setItem('sv-theme', mode); } catch (e) {}
   }
@@ -51,6 +58,8 @@ export default function ThemeToggle() {
     
     setTheme(initialTheme);
     setAccent(initialAccent);
+    
+    // Apply theme with proper initialization
     applyTheme(initialTheme);
     applyAccent(initialAccent);
 

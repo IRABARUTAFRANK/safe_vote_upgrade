@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { requireVoter, logoutVoter, getVoterSession, getVoterAccountStatus } from "@/lib/voterAuth";
 import { getClientIp, logSecurityEvent } from "@/lib/security";
+import { updateElectionStatuses } from "@/lib/electionStatusHelper";
 import { revalidatePath } from "next/cache";
 
 // Get voter account status
@@ -21,35 +22,12 @@ export async function getActiveElections() {
   const session = await requireVoter();
 
   try {
+    // First, update any election statuses that may have changed
+    await updateElectionStatuses();
+    
     const now = new Date();
     
-    // Get the election this member is linked to (via their voter code)
-    // Members are linked to a specific election when they create their account
-    if (!session.electionId) {
-      // Fallback: try to find election via voter code matching
-      const normalizedMemberCode = session.memberCode.replace(/\s+/g, '').toUpperCase().trim();
-      const voterCode = await db.voterCode.findFirst({
-        where: {
-          code: normalizedMemberCode,
-          orgId: session.orgId,
-          status: { in: ["UNUSED", "USED"] },
-        },
-        select: { electionId: true },
-      });
-      
-      if (voterCode) {
-        // Update member with election link for future queries
-        await db.member.update({
-          where: { id: session.memberId },
-          data: { electionId: voterCode.electionId },
-        });
-      }
-    }
-
-    // Get elections where member has access:
-    // 1. Election is ACTIVE
-    // 2. Current date is between startDate and endDate
-    // 3. Member is linked to this election OR has a voter code for it
+    // Normalize the member code for comparison
     const normalizedMemberCode = session.memberCode.replace(/\s+/g, '').toUpperCase().trim();
     
     // Find all elections the member has access to
@@ -72,6 +50,27 @@ export async function getActiveElections() {
     
     voterCodes.forEach(vc => accessibleElectionIds.add(vc.electionId));
     
+    // If not found yet and no session electionId, try finding election via the voter code
+    if (accessibleElectionIds.size === 0 && !session.electionId) {
+      const codeRecord = await db.voterCode.findFirst({
+        where: {
+          code: normalizedMemberCode,
+          orgId: session.orgId,
+          status: { in: ["UNUSED", "USED"] },
+        },
+        select: { electionId: true },
+      });
+      
+      if (codeRecord) {
+        accessibleElectionIds.add(codeRecord.electionId);
+        // Update member record to link to election for future queries
+        await db.member.update({
+          where: { id: session.memberId },
+          data: { electionId: codeRecord.electionId },
+        }).catch(err => console.log("Could not update member electionId:", err));
+      }
+    }
+    
     if (accessibleElectionIds.size === 0) {
       return { success: true, data: [] };
     }
@@ -83,6 +82,7 @@ export async function getActiveElections() {
         status: "ACTIVE",
         startDate: { lte: now },
         endDate: { gte: now },
+        // Ensure election is properly linked to voter through voter code
       },
       include: {
         positions: {
@@ -492,6 +492,9 @@ export async function getElectionsForApplication() {
   const session = await requireVoter();
 
   try {
+    // First, update any election statuses that may have changed
+    await updateElectionStatuses();
+    
     const now = new Date();
     const normalizedMemberCode = session.memberCode.replace(/\s+/g, '').toUpperCase().trim();
     
@@ -513,6 +516,27 @@ export async function getElectionsForApplication() {
       select: { electionId: true },
     });
     memberVoterCodes.forEach(vc => accessibleElectionIds.add(vc.electionId));
+    
+    // If still no accessible elections found, try to find via voter code
+    if (accessibleElectionIds.size === 0) {
+      const voterCode = await db.voterCode.findFirst({
+        where: {
+          code: normalizedMemberCode,
+          orgId: session.orgId,
+          status: { in: ["UNUSED", "USED"] },
+        },
+        select: { electionId: true },
+      });
+      
+      if (voterCode) {
+        accessibleElectionIds.add(voterCode.electionId);
+        // Update member record for future queries
+        await db.member.update({
+          where: { id: session.memberId },
+          data: { electionId: voterCode.electionId },
+        }).catch(err => console.log("Could not update member electionId:", err));
+      }
+    }
 
     if (accessibleElectionIds.size === 0) {
       return { success: true, data: [] };

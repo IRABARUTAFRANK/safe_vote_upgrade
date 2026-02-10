@@ -18,6 +18,7 @@ import {
   deleteApplicationFormField,
   toggleRealTimeResults,
 } from "../actions";
+import { formatDateForDatetimeLocal, formatDateAsLocal } from "@/lib/dateHelper";
 import styles from "./electionDetail.module.css";
 
 interface Position {
@@ -108,9 +109,7 @@ export default function ElectionDetailClient({ session, election: initialElectio
 
   // Settings form state
   const formatDateForInput = (date: Date | string | null) => {
-    if (!date) return "";
-    const d = new Date(date);
-    return d.toISOString().slice(0, 16);
+    return formatDateForDatetimeLocal(date);
   };
 
   const [settingsForm, setSettingsForm] = useState({
@@ -426,13 +425,7 @@ export default function ElectionDetailClient({ session, election: initialElectio
   };
 
   const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateAsLocal(date);
   };
 
   const getStatusColor = (status: string) => {

@@ -1,10 +1,42 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import ThemeToggle from "./components/ThemeToggle";
 
 export default function HomePage() {
+  const [stats, setStats] = useState({
+    votesCast: "2.5M+",
+    organisations: "850+",
+    countries: "45+",
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/stats");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setStats({
+              votesCast: data.data.votesCast > 0 ? `${(data.data.votesCast / 1000000).toFixed(1)}M+` : "0",
+              organisations: `${data.data.organisations}+`,
+              countries: `${data.data.countries}+`,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+        // Keep defaults if fetch fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-base-100">
       {/* Navbar */}
@@ -68,15 +100,15 @@ export default function HomePage() {
               <div className="stats stats-vertical shadow-lg">
                 <div className="stat">
                   <div className="stat-title">Votes Cast</div>
-                  <div className="stat-value text-emerald-500">2.5M+</div>
+                  <div className="stat-value text-emerald-500">{stats.votesCast}</div>
                 </div>
                 <div className="stat">
                   <div className="stat-title">Organizations</div>
-                  <div className="stat-value text-blue-500">850+</div>
+                  <div className="stat-value text-blue-500">{stats.organisations}</div>
                 </div>
                 <div className="stat">
                   <div className="stat-title">Countries</div>
-                  <div className="stat-value text-purple-500">45+</div>
+                  <div className="stat-value text-purple-500">{stats.countries}</div>
                 </div>
               </div>
               
