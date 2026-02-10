@@ -135,6 +135,9 @@ export default function ElectionDetailClient({ session, election: initialElectio
     setError(null);
 
     try {
+      // Get the client's timezone offset
+      const clientOffsetMinutes = new Date().getTimezoneOffset();
+      
       const result = await updateElectionSettings(election.id, {
         title: settingsForm.title,
         description: settingsForm.description,
@@ -142,6 +145,7 @@ export default function ElectionDetailClient({ session, election: initialElectio
         endDate: settingsForm.endDate,
         applicationStartDate: settingsForm.applicationStartDate || null,
         applicationEndDate: settingsForm.applicationEndDate || null,
+        clientOffsetMinutes,
       });
 
       if (result.success) {

@@ -43,6 +43,10 @@ export default function NewElectionClient() {
         formDataObj.append("applicationEndDate", formData.applicationEndDate);
       }
       formDataObj.append("showRealTimeResults", String(formData.showRealTimeResults));
+      
+      // Send the client's timezone offset so server can correctly parse datetime-local inputs
+      const clientOffsetMinutes = new Date().getTimezoneOffset();
+      formDataObj.append("clientOffsetMinutes", String(clientOffsetMinutes));
 
       const result = await createElection(formDataObj);
 

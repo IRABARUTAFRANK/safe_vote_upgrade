@@ -22,6 +22,7 @@ export async function createElection(formData: FormData) {
   const applicationStartDate = formData.get("applicationStartDate") as string;
   const applicationEndDate = formData.get("applicationEndDate") as string;
   const showRealTimeResults = formData.get("showRealTimeResults") === "true";
+  const clientOffsetMinutes = parseInt((formData.get("clientOffsetMinutes") as string) || "0", 10) || 0;
 
   const titleValidation = validateAndSanitizeInput(title, {
     type: "text",
@@ -36,8 +37,10 @@ export async function createElection(formData: FormData) {
     return { success: false, error: "Start date and end date are required" };
   }
 
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  // Parse all dates as local time to preserve user's intended timezone
+  // Pass the client's offset so the server can correctly interpret the datetime-local string
+  const start = parseLocalDateTime(startDate, clientOffsetMinutes);
+  const end = parseLocalDateTime(endDate, clientOffsetMinutes);
   const now = new Date();
 
   if (isNaN(start.getTime()) || isNaN(end.getTime())) {
@@ -75,8 +78,8 @@ export async function createElection(formData: FormData) {
           numberOfVoters: voterCount,
           candidateMethod: candidateMethod as "MANUAL" | "APPLICATION",
           // Parse datetime-local inputs as local time, not UTC
-          applicationStartDate: applicationStartDate ? parseLocalDateTime(applicationStartDate) : null,
-          applicationEndDate: applicationEndDate ? parseLocalDateTime(applicationEndDate) : null,
+          applicationStartDate: applicationStartDate ? parseLocalDateTime(applicationStartDate, clientOffsetMinutes) : null,
+          applicationEndDate: applicationEndDate ? parseLocalDateTime(applicationEndDate, clientOffsetMinutes) : null,
           showRealTimeResults,
         },
       });
@@ -239,6 +242,7 @@ export async function updateElectionSettings(
     applicationStartDate?: string | null;
     applicationEndDate?: string | null;
     showRealTimeResults?: boolean;
+    clientOffsetMinutes?: number;
   }
 ) {
   const session = await getOrgAdminSession();
@@ -261,16 +265,17 @@ export async function updateElectionSettings(
 
     // Build update object
     const updateData: any = {};
+    const clientOffset = data.clientOffsetMinutes ?? 0;
     
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description || null;
-    if (data.startDate !== undefined) updateData.startDate = new Date(data.startDate);
-    if (data.endDate !== undefined) updateData.endDate = new Date(data.endDate);
+    if (data.startDate !== undefined) updateData.startDate = parseLocalDateTime(data.startDate, clientOffset);
+    if (data.endDate !== undefined) updateData.endDate = parseLocalDateTime(data.endDate, clientOffset);
     if (data.applicationStartDate !== undefined) {
-      updateData.applicationStartDate = data.applicationStartDate ? parseLocalDateTime(data.applicationStartDate) : null;
+      updateData.applicationStartDate = data.applicationStartDate ? parseLocalDateTime(data.applicationStartDate, clientOffset) : null;
     }
     if (data.applicationEndDate !== undefined) {
-      updateData.applicationEndDate = data.applicationEndDate ? parseLocalDateTime(data.applicationEndDate) : null;
+      updateData.applicationEndDate = data.applicationEndDate ? parseLocalDateTime(data.applicationEndDate, clientOffset) : null;
     }
     if (data.showRealTimeResults !== undefined) updateData.showRealTimeResults = data.showRealTimeResults;
 
