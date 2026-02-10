@@ -504,6 +504,16 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
 
   // Application Modal
   if (applyingElection) {
+    // Check if user already has ANY application in this election
+    const existingApplication = applyingElection.applications.length > 0 
+      ? applyingElection.applications[0] 
+      : null;
+    
+    // Find the position name of existing application
+    const appliedPositionName = existingApplication 
+      ? applyingElection.positions.find(p => p.id === existingApplication.positionId)?.name
+      : null;
+    
     const availablePositions = applyingElection.positions.filter(
       (p) => !applyingElection.applications.some((a) => a.positionId === p.id)
     );
@@ -533,6 +543,19 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
         </div>
 
         <div className="container mx-auto px-4 py-8 max-w-2xl">
+          {/* Existing Application Alert */}
+          {existingApplication && appliedPositionName && (
+            <div className="alert alert-info mb-6 shadow-lg">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="font-bold">You have already applied</h3>
+                <p className="text-sm">You submitted an application for the position of <strong>{appliedPositionName}</strong>. You can only apply for one position per election.</p>
+              </div>
+            </div>
+          )}
+
           {message && (
             <div className={`alert ${message.type === "error" ? "alert-error" : "alert-success"} mb-6 shadow-lg`}>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -542,80 +565,100 @@ export default function VoterDashboardClient({ session }: VoterDashboardClientPr
             </div>
           )}
 
-          <div className="card bg-base-100 shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title mb-4">Select Position</h2>
-              
-              <div className="form-control w-full mb-6">
-                <select
-                  className="select select-bordered select-lg w-full"
-                  value={selectedPosition}
-                  onChange={(e) => setSelectedPosition(e.target.value)}
-                >
-                  <option value="">Choose a position to apply for...</option>
-                  {availablePositions.map((pos) => (
-                    <option key={pos.id} value={pos.id}>{pos.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedPosition && applyingElection.applicationForm.length > 0 && (
-                <>
-                  <div className="divider">Application Form</div>
-                  <div className="space-y-4">
-                    {applyingElection.applicationForm.map((field) => (
-                      <div key={field.id} className="form-control w-full">
-                        <label className="label">
-                          <span className="label-text font-medium">
-                            {field.fieldName}
-                            {field.isRequired && <span className="text-error ml-1">*</span>}
-                          </span>
-                        </label>
-                        {field.fieldType === "textarea" ? (
-                          <textarea
-                            className="textarea textarea-bordered h-24"
-                            placeholder={field.placeholder || ""}
-                            value={formResponses[field.id] || ""}
-                            onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
-                          />
-                        ) : field.fieldType === "select" && field.options ? (
-                          <select
-                            className="select select-bordered"
-                            value={formResponses[field.id] || ""}
-                            onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
-                          >
-                            <option value="">Select an option...</option>
-                            {field.options.split(",").map((opt) => (
-                              <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type={field.fieldType === "email" ? "email" : field.fieldType === "number" ? "number" : "text"}
-                            className="input input-bordered"
-                            placeholder={field.placeholder || ""}
-                            value={formResponses[field.id] || ""}
-                            onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
-                          />
-                        )}
-                      </div>
+          {/* Disable form if already applied */}
+          {!existingApplication ? (
+            <div className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title mb-4">Select Position</h2>
+                
+                <div className="form-control w-full mb-6">
+                  <select
+                    className="select select-bordered select-lg w-full"
+                    value={selectedPosition}
+                    onChange={(e) => setSelectedPosition(e.target.value)}
+                  >
+                    <option value="">Choose a position to apply for...</option>
+                    {availablePositions.map((pos) => (
+                      <option key={pos.id} value={pos.id}>{pos.name}</option>
                     ))}
-                  </div>
-                </>
-              )}
+                  </select>
+                </div>
 
-              <div className="card-actions justify-end mt-6">
-                <button className="btn btn-ghost" onClick={handleCancelApplication}>Cancel</button>
-                <button
-                  className={`btn btn-success ${submitting ? "loading" : ""}`}
-                  onClick={handleSubmitApplication}
-                  disabled={!selectedPosition || submitting}
-                >
-                  {submitting ? "Submitting..." : "Submit Application"}
-                </button>
+                {selectedPosition && applyingElection.applicationForm.length > 0 && (
+                  <>
+                    <div className="divider">Application Form</div>
+                    <div className="space-y-4">
+                      {applyingElection.applicationForm.map((field) => (
+                        <div key={field.id} className="form-control w-full">
+                          <label className="label">
+                            <span className="label-text font-medium">
+                              {field.fieldName}
+                              {field.isRequired && <span className="text-error ml-1">*</span>}
+                            </span>
+                          </label>
+                          {field.fieldType === "textarea" ? (
+                            <textarea
+                              className="textarea textarea-bordered h-24"
+                              placeholder={field.placeholder || ""}
+                              value={formResponses[field.id] || ""}
+                              onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                            />
+                          ) : field.fieldType === "select" && field.options ? (
+                            <select
+                              className="select select-bordered"
+                              value={formResponses[field.id] || ""}
+                              onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                            >
+                              <option value="">Select an option...</option>
+                              {field.options.split(",").map((opt) => (
+                                <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type={field.fieldType === "email" ? "email" : field.fieldType === "number" ? "number" : "text"}
+                              className="input input-bordered"
+                              placeholder={field.placeholder || ""}
+                              value={formResponses[field.id] || ""}
+                              onChange={(e) => setFormResponses({ ...formResponses, [field.id]: e.target.value })}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div className="card-actions justify-end mt-6">
+                  <button className="btn btn-ghost" onClick={handleCancelApplication}>Cancel</button>
+                  <button
+                    className={`btn btn-success ${submitting ? "loading" : ""}`}
+                    onClick={handleSubmitApplication}
+                    disabled={!selectedPosition || submitting}
+                  >
+                    {submitting ? "Submitting..." : "Submit Application"}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                <div className="alert alert-warning">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0v2m0-6v-2m0 0V7a2 2 0 012-2h2.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2h-2.586a1 1 0 01-.707-.293l-5.414-5.414a1 1 0 01-.293-.707V7m0 0h0" />
+                  </svg>
+                  <div>
+                    <h3 className="font-bold">Application Already Submitted</h3>
+                    <p>You can only apply for one position per election. Your application has been recorded.</p>
+                  </div>
+                </div>
+                <div className="card-actions justify-end mt-6">
+                  <button className="btn btn-primary" onClick={handleCancelApplication}>Back to Dashboard</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

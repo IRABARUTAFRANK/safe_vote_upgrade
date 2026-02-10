@@ -673,17 +673,23 @@ export async function submitCandidateApplication(
       return { success: false, error: "Position not found" };
     }
 
-    // Check if user already applied for this position (with transaction safety)
-    const existingApplication = await db.candidateApplication.findFirst({
+    // Check if user already applied for ANY position in this election
+    // (restrict to one position per member per election)
+    const existingApplicationInElection = await db.candidateApplication.findFirst({
       where: {
         electionId,
-        positionId,
         applicantId: session.memberId,
+      },
+      include: {
+        position: true,
       },
     });
 
-    if (existingApplication) {
-      return { success: false, error: "You have already applied for this position" };
+    if (existingApplicationInElection) {
+      return { 
+        success: false, 
+        error: `You have already applied for the position of ${existingApplicationInElection.position.name} in this election. Members can only apply for one position per election.` 
+      };
     }
 
     // Validate required fields

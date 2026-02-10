@@ -23,20 +23,20 @@ export default function ThemeToggle() {
 
   function applyTheme(mode: ThemeMode) {
     if (typeof document === 'undefined') return;
+    const html = document.documentElement;
+    
     if (mode === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
+      html.setAttribute('data-theme', 'dark');
     } else if (mode === 'light') {
-      // Remove the dark theme attribute to revert to light mode
-      document.documentElement.removeAttribute('data-theme');
-      // Also explicitly set light mode
-      document.documentElement.setAttribute('data-theme', 'light');
+      // Explicitly set light theme
+      html.setAttribute('data-theme', 'light');
     } else {
       // System preference
       const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       if (prefersDark) {
-        document.documentElement.setAttribute('data-theme', 'dark');
+        html.setAttribute('data-theme', 'dark');
       } else {
-        document.documentElement.removeAttribute('data-theme');
+        html.setAttribute('data-theme', 'light');
       }
     }
     try { localStorage.setItem('sv-theme', mode); } catch (e) {}
@@ -135,7 +135,7 @@ export default function ThemeToggle() {
           border: `1px solid ${currentAccent?.color}33`,
           background: `${currentAccent?.color}0d`,
           cursor: 'pointer',
-          color: 'var(--text, #0f172a)',
+          color: 'var(--color-base-content)',
           fontSize: '14px',
           fontWeight: 500,
           transition: 'all 0.2s ease',
@@ -178,10 +178,10 @@ export default function ThemeToggle() {
             top: 'calc(100% + 8px)',
             right: 0,
             minWidth: '220px',
-            background: 'var(--card-bg, #fff)',
+            background: 'var(--color-base-200)',
             borderRadius: '12px',
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
-            border: '1px solid var(--border-color, #e2e8f0)',
+            border: `1px solid var(--color-base-300)`,
             overflow: 'hidden',
             zIndex: 1000,
             animation: 'dropdownFade 0.2s ease',
@@ -195,7 +195,7 @@ export default function ThemeToggle() {
           `}</style>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
+          <div style={{ display: 'flex', borderBottom: `1px solid var(--color-base-300)` }}>
             <button
               onClick={() => setActiveSection('mode')}
               style={{
@@ -204,7 +204,7 @@ export default function ThemeToggle() {
                 border: 'none',
                 background: activeSection === 'mode' ? `${currentAccent?.color}15` : 'transparent',
                 cursor: 'pointer',
-                color: 'var(--text, #0f172a)',
+                color: 'var(--color-base-content)',
                 fontSize: '13px',
                 fontWeight: activeSection === 'mode' ? 600 : 400,
                 borderBottom: activeSection === 'mode' ? `2px solid ${currentAccent?.color}` : '2px solid transparent',
@@ -220,7 +220,7 @@ export default function ThemeToggle() {
                 border: 'none',
                 background: activeSection === 'accent' ? `${currentAccent?.color}15` : 'transparent',
                 cursor: 'pointer',
-                color: 'var(--text, #0f172a)',
+                color: 'var(--color-base-content)',
                 fontSize: '13px',
                 fontWeight: activeSection === 'accent' ? 600 : 400,
                 borderBottom: activeSection === 'accent' ? `2px solid ${currentAccent?.color}` : '2px solid transparent',
@@ -247,7 +247,7 @@ export default function ThemeToggle() {
                     borderRadius: '8px',
                     background: theme === mode ? `${currentAccent?.color}15` : 'transparent',
                     cursor: 'pointer',
-                    color: 'var(--text, #0f172a)',
+                    color: 'var(--color-base-content)',
                     fontSize: '14px',
                     textAlign: 'left',
                     marginBottom: '4px',
@@ -313,7 +313,7 @@ export default function ThemeToggle() {
                   </button>
                 ))}
               </div>
-              <p style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', marginTop: '12px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--color-base-content-secondary)', textAlign: 'center', marginTop: '12px' }}>
                 {currentAccent?.name}
               </p>
             </div>
